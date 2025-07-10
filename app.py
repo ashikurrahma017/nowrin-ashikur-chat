@@ -1,41 +1,35 @@
-from flask import Flask, request, jsonify, send_file
-from flask_socketio import SocketIO, emit
-import eventlet
+from flask import Flask, render_template, request, jsonify
+from flask_socketio import SocketIO
+from flask_cors import CORS
+import os
 
-# Enable cooperative multitasking
-eventlet.monkey_patch()
-
-# Setup app and SocketIO
 app = Flask(__name__)
-socketio = SocketIO(app)
+CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
-# Hardcoded user credentials
+# Predefined users
 users = {
     "Nowrin": "nowrin007",
     "Ashikur": "ashikur01788"
 }
 
-# Serve the HTML page
-@app.route('/')
+@app.route("/")
 def index():
-    return send_file('index.html')
+    return render_template("index.html")  # Looks in /templates/index.html
 
-# Login route
-@app.route('/login', methods=['POST'])
+@app.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
-    
+    username = data.get("username")
+    password = data.get("password")
     if username in users and users[username] == password:
-        return jsonify(success=True)
-    return jsonify(success=False)
+        return jsonify({"success": True})
+    return jsonify({"success": False})
 
-# Handle chat messages
-@socketio.on('message')
+@socketio.on("message")
 def handle_message(data):
-    emit('message', data, broadcast=True)
+    socketio.emit("message", data)
 
-# Start the app
-if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    socketio.run(app, host="0.0.0.0", port=port)
