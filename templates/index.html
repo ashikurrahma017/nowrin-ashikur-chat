@@ -10,13 +10,13 @@
       margin: 0;
       padding: 0;
       font-family: 'Segoe UI', sans-serif;
-      overflow-x: hidden;
       background: linear-gradient(to right top, #fbc2eb, #a6c1ee);
       display: flex;
       flex-direction: column;
       min-height: 100vh;
-      position: relative;
+      overflow-x: hidden;
       color: #fff;
+      position: relative;
     }
 
     .heart {
@@ -30,8 +30,7 @@
       border-radius: 3px;
     }
 
-    .heart::before,
-    .heart::after {
+    .heart::before, .heart::after {
       content: '';
       position: absolute;
       width: 15px;
@@ -84,7 +83,6 @@
     }
 
     h2, h3 {
-      color: #fff;
       text-shadow: 1px 1px 2px #00000088;
       margin-bottom: 20px;
     }
@@ -179,8 +177,6 @@
       font-size: 14px;
       text-align: center;
       color: #e0e0e0;
-      z-index: 2;
-      user-select: none;
     }
 
     @media screen and (max-width: 600px) {
@@ -201,7 +197,7 @@
 </head>
 <body>
 
-<!-- Animated Hearts -->
+<!-- Floating Hearts -->
 <div class="heart"></div><div class="heart"></div><div class="heart"></div>
 <div class="heart"></div><div class="heart"></div><div class="heart"></div>
 <div class="heart"></div><div class="heart"></div>
@@ -311,17 +307,23 @@
     const container = document.createElement("div");
     container.className = "message " + (data.user === currentUser ? "me" : "other");
 
-    const msgText = document.createElement("div");
-    msgText.textContent = data.msg;
+    const line = document.createElement("div");
+    line.style.display = "flex";
+    line.style.justifyContent = data.user === currentUser ? "flex-end" : "flex-start";
+    line.style.alignItems = "center";
+    line.style.gap = "10px";
 
-    const time = document.createElement("div");
-    time.textContent = data.time;
+    const msg = document.createElement("span");
+    msg.textContent = data.msg;
+
+    const time = document.createElement("span");
     time.style.fontSize = "12px";
     time.style.opacity = "0.7";
-    time.style.marginTop = "4px";
+    time.textContent = data.time + (data.user === currentUser ? " ✔✔" : "");
 
-    container.appendChild(msgText);
-    container.appendChild(time);
+    line.appendChild(msg);
+    line.appendChild(time);
+    container.appendChild(line);
 
     const box = document.getElementById("chat-box");
     box.appendChild(container);
