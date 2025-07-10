@@ -1,20 +1,20 @@
 from flask import Flask, render_template, request, jsonify
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, emit
 from flask_cors import CORS
-from datetime import datetime
-import os
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'love-nowrin-ashikur'
 CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Predefined users
 users = {
-    "Nowrin": "nowrin007",
-    "Ashikur": "ashikur01788"
+    "Ashikur": "ashikur01788",
+    "Nowrin": "nowrin007"
 }
 
-# Store message history (in-memory)
+# In-memory message store
 message_history = []
 
 @app.route("/")
@@ -23,24 +23,24 @@ def index():
 
 @app.route("/login", methods=["POST"])
 def login():
-    data = request.get_json()
+    data = request.json
     username = data.get("username")
     password = data.get("password")
+    
     if username in users and users[username] == password:
-        return jsonify({"success": True, "history": message_history})
-    return jsonify({"success": False})
+        return jsonify(success=True, history=message_history)
+    else:
+        return jsonify(success=False)
 
 @socketio.on("message")
 def handle_message(data):
-    timestamp = datetime.now().strftime("%I:%M %p")  # e.g., 03:45 PM
-    message_data = {
-        "user": data["user"],
-        "msg": data["msg"],
-        "time": timestamp
-    }
-    message_history.append(message_data)
-    socketio.emit("message", message_data)
+    user = data["user"]
+    msg = data["msg"]
+    bd_time = datetime.utcnow() + timedelta(hours=6)
+    time_str = bd_time.strftime("%I:%M %p")
+    payload = {"user": user, "msg": msg, "time": time_str}
+    message_history.append(payload)
+    emit("message", payload, broadcast=True)
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    socketio.run(app, host="0.0.0.0", port=port)
+    socketio.run(app, host="0.0.0.0", port=5000)
