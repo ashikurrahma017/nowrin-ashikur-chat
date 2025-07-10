@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nowrin & Ashikur Chat</title>
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+  <style>
+    /* Background and floating hearts */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      overflow-x: hidden;
+      background: linear-gradient(to right top, #fbc2eb, #a6c1ee);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      position: relative;
+      color: #fff;
+    }
+
+    .heart {
+      position: absolute;
+      width: 15px;
+      height: 15px;
+      background: pink;
+      transform: rotate(45deg);
+      animation: float 10s linear infinite;
+      opacity: 0.7;
+      border-radius: 3px;
+    }
+
+    .heart::before,
+    .heart::after {
+      content: '';
+      position: absolute;
+      width: 15px;
+      height: 15px;
+      background: pink;
+      border-radius: 50%;
+    }
+
+    .heart::before { top: -7.5px; left: 0; }
+    .heart::after { left: -7.5px; top: 0; }
+
+    @keyframes float {
+      0% { bottom: -20px; opacity: 0; }
+      50% { opacity: 1; }
+      100% {
+        bottom: 100%;
+        transform: translateX(-50px) rotate(45deg);
+        opacity: 0;
+      }
+    }
+
+    .heart:nth-child(1) { left: 10%; animation-duration: 9s; }
+    .heart:nth-child(2) { left: 20%; animation-duration: 12s; }
+    .heart:nth-child(3) { left: 30%; animation-duration: 8s; }
+    .heart:nth-child(4) { left: 50%; animation-duration: 14s; }
+    .heart:nth-child(5) { left: 60%; animation-duration: 11s; }
+    .heart:nth-child(6) { left: 70%; animation-duration: 10s; }
+    .heart:nth-child(7) { left: 80%; animation-duration: 13s; }
+    .heart:nth-child(8) { left: 90%; animation-duration: 9s; }
+
+    /* Premium Glass Box */
+    #login, #chat {
+      display: none;
+      margin: auto;
+      margin-top: 60px;
+      padding: 40px 30px;
+      width: 90%;
+      max-width: 400px;
+      border-radius: 18px;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+      backdrop-filter: blur(14px);
+      background: rgba(250, 182, 212, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      text-align: center;
+      z-index: 2;
+      color: #fff;
+    }
+
+    #login {
+      display: block;
+    }
+
+    h2, h3 {
+      color: #fff;
+      text-shadow: 1px 1px 2px #00000088;
+      margin-bottom: 20px;
+      min-height: 48px;
+    }
+
+    #typewriter {
+      font-style: italic;
+      font-size: 1.1em;
+      min-height: 26px;
+      margin-bottom: 25px;
+      color: #fce4ec;
+      text-shadow: 1px 1px 3px #880038cc;
+      letter-spacing: 1px;
+      height: 30px;
+    }
+
+    input, button {
+      padding: 14px;
+      margin: 12px 0;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      width: 100%;
+      box-sizing: border-box;
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      outline: none;
+      transition: background-color 0.3s ease;
+    }
+
+    input::placeholder {
+      color: #eee;
+    }
+
+    input:focus {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    button {
+      background: #e91e63;
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+      box-shadow: 0 4px 10px #c2185baa;
+    }
+
+    button:hover {
+      background: #c2185b;
+      box-shadow: 0 6px 15px #880038cc;
+    }
+
+    #chat-box {
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 10px;
+      height: 350px;
+      overflow-y: auto;
+      padding: 15px;
+      margin-bottom: 20px;
+      color: #222;
+      font-weight: 500;
+      background-clip: padding-box;
+      backdrop-filter: blur(8px);
+    }
+
+    .message {
+      padding: 10px 14px;
+      border-radius: 20px;
+      margin: 8px 0;
+      max-width: 75%;
+      word-wrap: break-word;
+      font-size: 15px;
+      line-height: 1.4;
+      clear: both;
+    }
+
+    .me {
+      background-color: #fce4ec;
+      text-align: right;
+      float: right;
+      color: #880038;
+    }
+
+    .other {
+      background-color: #e3f2fd;
+      text-align: left;
+      float: left;
+      color: #01579b;
+    }
+
+    footer {
+      margin-top: auto;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 16px;
+      font-size: 14px;
+      text-align: center;
+      color: #e0e0e0;
+      z-index: 2;
+      user-select: none;
+    }
+
+    @media screen and (max-width: 600px) {
+      #login, #chat {
+        width: 90%;
+        padding: 20px;
+      }
+
+      input, button {
+        font-size: 15px;
+      }
+
+      #chat-box {
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Animated Hearts -->
+<div class="heart"></div><div class="heart"></div><div class="heart"></div>
+<div class="heart"></div><div class="heart"></div><div class="heart"></div>
+<div class="heart"></div><div class="heart"></div>
+
+<div id="login">
+  <h2>Nowrin... Please Login</h2>
+  <div id="typewriter"></div>
+  <input id="username" placeholder="Enter your name, my love" autocomplete="off" />
+  <input id="password" type="password" placeholder="Password" autocomplete="off" />
+  <button onclick="login()">Enter Our Chat</button>
+  <p id="login-msg" style="color: #ffb6c1;"></p>
+</div>
+
+<div id="chat">
+  <h3 id="welcome">Welcome</h3>
+  <div id="chat-box"></div>
+  <input id="msg" placeholder="Type your sweet message..." autocomplete="off" />
+  <button onclick="sendMsg()">Send</button>
+</div>
+
+<footer>
+  ❤️ Only for Nowrin Noor — Powered by Ashikur Arefin<br/>
+  © 2025 All rights reserved by Ashikur Arefin
+</footer>
+
+<script>
+  // Typewriter with 10 romantic lines cycling
+  const lines = [
+    "I am waiting for your sweet words...",
+    "Every message from you is a heartbeat...",
+    "Your texts are my sunshine in gloomy days.",
+    "My heart races when I see your name typing...",
+    "Can’t wait to read your love-filled messages.",
+    "Your words paint colors in my world.",
+    "Typing... hoping it’s from you, my dear.",
+    "The chat is empty, but my love is full.",
+    "Just one text from you can brighten my night.",
+    "Our conversation is my favorite dream."
+  ];
+
+  let currentLine = 0;
+  let currentChar = 0;
+  let typingDelay = 60;
+  let erasingDelay = 40;
+  let newLineDelay = 2000; // Pause before next line
+  const typewriterElement = document.getElementById("typewriter");
+
+  function type() {
+    if (currentChar < lines[currentLine].length) {
+      typewriterElement.textContent += lines[currentLine].charAt(currentChar);
+      currentChar++;
+      setTimeout(type, typingDelay);
+    } else {
+      setTimeout(erase, newLineDelay);
+    }
+  }
+
+  function erase() {
+    if (currentChar > 0) {
+      typewriterElement.textContent = lines[currentLine].substring(0, currentChar -1);
+      currentChar--;
+      setTimeout(erase, erasingDelay);
+    } else {
+      currentLine++;
+      if (currentLine >= lines.length) currentLine = 0;
+      setTimeout(type, typingDelay + 500);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function(){
+    if(lines.length) setTimeout(type, newLineDelay);
+  });
+
+  // Chat app logic (mock login, replace with your backend)
+  const socket = io();
+  let currentUser = "";
+
+  function login() {
+    const u = document.getElementById("username").value.trim();
+    const p = document.getElementById("password").value.trim();
+    const msgElem = document.getElementById("login-msg");
+
+    // Simple mock validation
+    if (!u) {
+      msgElem.textContent = "Please enter your name, my love.";
+      return;
+    }
+    if (!p) {
+      msgElem.textContent = "Password is required to enter our chat.";
+      return;
+    }
+    
+    // For demo, accept any username and password
+    currentUser = u;
+    msgElem.textContent = "";
+    document.getElementById("login").style.display = "none";
+    document.getElementById("chat").style.display = "block";
+    document.getElementById("welcome").textContent = "Welcome, " + u + " ❤️";
+
+    // Stop typewriter when logged in
+    typewriterElement.textContent = "";
+  }
+
+  function sendMsg() {
+    const msgInput = document.getElementById("msg");
+    const msg = msgInput.value.trim();
+    if (msg) {
+      // Emit message via socket.io
+      socket.emit("message", { user: currentUser, msg });
+      msgInput.value = "";
+    }
+  }
+
+  socket.on("message", data => {
+    const div = document.createElement("div");
+    div.className = "message " + (data.user === currentUser ? "me" : "other");
+    div.textContent = data.user + ": " + data.msg;
+    const box = document.getElementById("chat-box");
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  });
+</script>
+
+</body>
+</html>
