@@ -1,3 +1,5 @@
-Flask
-Flask-SocketIO
+flask
+flask-socketio
 eventlet
+flask-cors
+
