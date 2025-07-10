@@ -157,18 +157,17 @@
       font-size: 15px;
       line-height: 1.4;
       clear: both;
+      display: inline-block;
     }
 
     .me {
       background-color: #fce4ec;
-      text-align: right;
       float: right;
       color: #880038;
     }
 
     .other {
       background-color: #e3f2fd;
-      text-align: left;
       float: left;
       color: #01579b;
     }
@@ -309,11 +308,23 @@
   }
 
   function displayMessage(data) {
-    const div = document.createElement("div");
-    div.className = "message " + (data.user === currentUser ? "me" : "other");
-    div.textContent = `${data.user} (${data.time}): ${data.msg}`;
+    const container = document.createElement("div");
+    container.className = "message " + (data.user === currentUser ? "me" : "other");
+
+    const msgText = document.createElement("div");
+    msgText.textContent = data.msg;
+
+    const time = document.createElement("div");
+    time.textContent = data.time;
+    time.style.fontSize = "12px";
+    time.style.opacity = "0.7";
+    time.style.marginTop = "4px";
+
+    container.appendChild(msgText);
+    container.appendChild(time);
+
     const box = document.getElementById("chat-box");
-    box.appendChild(div);
+    box.appendChild(container);
     box.scrollTop = box.scrollHeight;
   }
 
