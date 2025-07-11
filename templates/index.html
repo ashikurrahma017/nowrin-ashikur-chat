@@ -11,8 +11,8 @@
       padding: 0;
       font-family: 'Segoe UI', sans-serif;
       background: linear-gradient(to right top, #fbc2eb, #a6c1ee);
-      overflow-x: hidden;
       color: #fff;
+      overflow-x: hidden;
     }
 
     #login, #chat {
@@ -46,6 +46,7 @@
       border-radius: 10px;
       background: rgba(255, 255, 255, 0.2);
       backdrop-filter: blur(10px);
+      color: black;
     }
 
     .message {
@@ -54,7 +55,6 @@
       border-radius: 10px;
       clear: both;
       max-width: 70%;
-      position: relative;
       word-wrap: break-word;
     }
 
@@ -71,20 +71,19 @@
     }
 
     .meta {
-      display: inline-flex;
-      align-items: center;
-      justify-content: flex-end;
       font-size: 12px;
       color: #666;
-      gap: 4px;
-      margin-top: 6px;
-      float: right;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
       white-space: nowrap;
     }
 
     .tick {
-      font-size: 13px;
-      color: #34b7f1; /* WhatsApp-style tick color */
+      font-size: 14px;
+      color: #4caf50;
     }
 
     #send-container {
@@ -92,10 +91,10 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
+      margin-top: 10px;
     }
 
     #file-label {
-      display: inline-block;
       background: #fff3;
       color: black;
       border-radius: 50%;
@@ -121,19 +120,31 @@
       border: 1px solid #ccc;
     }
 
-    button {
-      width: 50px;
-      background-color: #25d366;
-      color: white;
-      font-weight: bold;
+    #emoji-btn {
+      font-size: 22px;
       cursor: pointer;
-      transition: background-color 0.3s ease;
-      font-size: 18px;
-      padding: 10px 0;
+      background: transparent;
+      border: none;
     }
 
-    button:hover {
-      background-color: #128c7e;
+    .send-btn {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: #fff;
+      background-color: #4caf50;
+      padding: 10px;
+      border-radius: 50%;
+    }
+
+    #typing {
+      text-align: left;
+      margin-top: 5px;
+      font-size: 13px;
+      font-style: italic;
+      color: #000;
+      padding-left: 5px;
     }
 
     @media(max-width: 480px) {
@@ -147,16 +158,8 @@
         height: 250px;
       }
 
-      #file-label {
-        width: 28px;
-        height: 28px;
-        font-size: 22px;
-        line-height: 28px;
-      }
-
-      button {
-        width: 44px;
-        font-size: 16px;
+      .send-btn {
+        font-size: 20px;
       }
     }
   </style>
@@ -174,15 +177,17 @@
   <div id="chat">
     <h3 id="welcome"></h3>
     <div id="chat-box"></div>
+    <div id="typing"></div>
     <div id="send-container">
       <label for="file" id="file-label">+</label>
       <input type="file" id="file" accept="image/*,application/pdf" />
-      <input id="msg" placeholder="Type message... 😊" />
-      <button onclick="sendMsg()">➤</button>
+      <button id="emoji-btn">😊</button>
+      <input id="msg" placeholder="Type message..." />
+      <button class="send-btn" onclick="sendMsg()">➤</button>
     </div>
   </div>
 
-  <audio id="receiveSound" src="https://notificationsounds.com/storage/sounds/file-sounds-1151-pristine.mp3" preload="auto"></audio>
+  <audio id="receiveSound" src="https://www.soundjay.com/buttons/sounds/button-09.mp3" preload="auto"></audio>
 
   <script>
     const socket = io();
@@ -233,6 +238,7 @@
 
       document.getElementById("msg").value = "";
       fileInput.value = "";
+      socket.emit("typing", { user: currentUser, typing: false });
     }
 
     function displayMessage(data) {
@@ -242,23 +248,19 @@
       if (data.msg) div.innerHTML += `<div>${escapeHtml(data.msg)}</div>`;
 
       if (data.file && data.filename) {
-        if (data.filename.toLowerCase().endsWith(".pdf")) {
-          div.innerHTML += `<a href="${data.file}" target="_blank" rel="noopener noreferrer" style="color:#3b5998;">📄 View PDF</a>`;
+        if (data.filename.endsWith(".pdf")) {
+          div.innerHTML += `<a href="${data.file}" target="_blank">📄 View PDF</a>`;
         } else {
-          div.innerHTML += `<img src="${data.file}" style="max-width:200px; border-radius:10px; margin-top:6px;" />`;
+          div.innerHTML += `<img src="${data.file}" style="max-width:200px; border-radius:10px;" />`;
         }
       }
 
-      const meta = document.createElement("div");
-      meta.className = "meta";
-      meta.innerHTML = `${data.time} <span class="tick">${data.user === currentUser ? (data.seen ? '✔✔' : '✔') : ''}</span>`;
-      div.appendChild(meta);
-
+      div.innerHTML += `<div class="meta">${data.time}&nbsp;<span class="tick">${data.user === currentUser ? (data.seen ? '✔✔' : '✔') : ''}</span></div>`;
       document.getElementById("chat-box").appendChild(div);
       document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
 
       if (data.user !== currentUser) {
-        document.getElementById("receiveSound")?.play();
+        document.getElementById("receiveSound").play();
       }
     }
 
@@ -281,11 +283,33 @@
     });
 
     socket.on("update_seen", () => {
-      const messages = document.querySelectorAll(".message.me");
-      messages.forEach((div) => {
-        const tick = div.querySelector(".tick");
-        if (tick) tick.innerText = "✔✔";
-      });
+      const messages = document.querySelectorAll(".message.me .tick");
+      messages.forEach(tick => tick.innerText = "✔✔");
+    });
+
+    // Typing indicator
+    const msgInput = document.getElementById("msg");
+    msgInput.addEventListener("input", () => {
+      socket.emit("typing", { user: currentUser, typing: msgInput.value.length > 0 });
+    });
+
+    socket.on("typing", (data) => {
+      const typingDiv = document.getElementById("typing");
+      if (data.user !== currentUser && data.typing) {
+        typingDiv.innerText = `${data.user} is typing...`;
+      } else {
+        typingDiv.innerText = "";
+      }
+    });
+
+    // Emoji picker
+    document.getElementById("emoji-btn").addEventListener("click", () => {
+      const emojiList = ["😍", "😘", "🥰", "😊", "😂", "😎", "💖", "😭", "🤗", "😳"];
+      const picker = prompt("Choose emoji:\n" + emojiList.join(" "));
+      if (picker) {
+        msgInput.value += picker;
+        msgInput.focus();
+      }
     });
   </script>
 </body>
