@@ -2,60 +2,66 @@ from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
 from datetime import datetime
 import pytz
+import os
+import json
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates")
 socketio = SocketIO(app)
 
-# Hardcoded users
-users = {
-    "Nowrin": "nowrin007",
-    "Ashikur": "ashikur01788"
-}
+DATA_FILE = "messages.json"
 
-# Store messages in memory
-message_history = []
+# Load saved messages
+def load_messages():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as f:
+            return json.load(f)
+    return []
 
-@app.route('/')
+# Save messages
+def save_messages():
+    with open(DATA_FILE, "w") as f:
+        json.dump(messages, f)
+
+messages = load_messages()
+seen_users = set()
+
+@app.route("/")
 def index():
-    return render_template('index.html')
+    return render_template("index.html")
 
-@app.route('/login', methods=['POST'])
+@app.route("/login", methods=["POST"])
 def login():
-    data = request.json
+    data = request.get_json()
     username = data.get("username")
     password = data.get("password")
-    if users.get(username) == password:
-        return jsonify(success=True, history=message_history)
-    return jsonify(success=False)
+    if username and password:
+        return jsonify({"success": True, "history": messages})
+    return jsonify({"success": False})
 
 @socketio.on("message")
 def handle_message(data):
-    bd_time = datetime.now(pytz.timezone("Asia/Dhaka")).strftime("%I:%M %p")
+    tz = pytz.timezone("Asia/Dhaka")
+    now = datetime.now(tz).strftime("%I:%M %p")
     message = {
         "user": data["user"],
-        "msg": data.get("msg", ""),
-        "time": bd_time,
-        "seen": False
+        "msg": data.get("msg"),
+        "time": now,
+        "seen": False,
+        "file": data.get("file"),
+        "filename": data.get("filename")
     }
-
-    if "file" in data:
-        message["file"] = data["file"]
-        message["filename"] = data["filename"]
-
-    message_history.append(message)
+    messages.append(message)
+    save_messages()
     emit("message", message, broadcast=True)
 
 @socketio.on("seen")
 def handle_seen(data):
-    for msg in message_history:
+    seen_users.add(data["user"])
+    for msg in messages:
         if msg["user"] != data["user"]:
             msg["seen"] = True
-    emit("update_seen", list(range(len(message_history))), broadcast=True)
+    save_messages()
+    emit("update_seen", broadcast=True)
 
-# ✅ New: Handle typing indicator
-@socketio.on("typing")
-def handle_typing(data):
-    emit("typing", data, broadcast=True)
-
-if __name__ == '__main__':
-    socketio.run(app, host="0.0.0.0", port=5000)
+if __name__ == "__main__":
+    socketio.run(app, host="0.0.0.0", port=10000)
