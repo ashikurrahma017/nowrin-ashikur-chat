@@ -6,7 +6,6 @@
   <title>Nowrin & Ashikur Chat</title>
   <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
   <style>
-    /* Romantic theme with animated hearts */
     body {
       margin: 0;
       padding: 0;
@@ -15,41 +14,6 @@
       overflow-x: hidden;
       color: #fff;
     }
-    .heart {
-      position: absolute;
-      width: 15px;
-      height: 15px;
-      background: pink;
-      transform: rotate(45deg);
-      animation: float 10s linear infinite;
-      opacity: 0.7;
-      border-radius: 3px;
-    }
-    .heart::before,
-    .heart::after {
-      content: '';
-      position: absolute;
-      width: 15px;
-      height: 15px;
-      background: pink;
-      border-radius: 50%;
-    }
-    .heart::before { top: -7.5px; left: 0; }
-    .heart::after { left: -7.5px; top: 0; }
-    @keyframes float {
-      0% { bottom: -20px; opacity: 0; }
-      50% { opacity: 1; }
-      100% { bottom: 100%; transform: translateX(-50px) rotate(45deg); opacity: 0; }
-    }
-    .heart:nth-child(1) { left: 10%; animation-duration: 9s; }
-    .heart:nth-child(2) { left: 20%; animation-duration: 12s; }
-    .heart:nth-child(3) { left: 30%; animation-duration: 8s; }
-    .heart:nth-child(4) { left: 50%; animation-duration: 14s; }
-    .heart:nth-child(5) { left: 60%; animation-duration: 11s; }
-    .heart:nth-child(6) { left: 70%; animation-duration: 10s; }
-    .heart:nth-child(7) { left: 80%; animation-duration: 13s; }
-    .heart:nth-child(8) { left: 90%; animation-duration: 9s; }
-
     #login, #chat {
       display: none;
       margin: 60px auto;
@@ -71,10 +35,6 @@
       border: none;
       color: black;
     }
-    input[type=file] {
-      background: #fff3;
-      color: #000;
-    }
     #chat-box {
       height: 350px;
       overflow-y: auto;
@@ -93,23 +53,42 @@
     }
     .me { float: right; background: #dcf8c6; color: #000; }
     .other { float: left; background: #eee; color: #000; }
-    .timestamp {
+    .meta {
       font-size: 12px;
       color: #666;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 4px;
       margin-top: 4px;
-      display: block;
     }
     .tick {
       font-size: 14px;
-      margin-left: 6px;
+    }
+    #send-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    #file-label {
+      display: inline-block;
+      background: #fff3;
+      color: black;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      text-align: center;
+      line-height: 32px;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    #file {
+      display: none;
     }
   </style>
 </head>
 <body>
-  <!-- Animated hearts -->
-  <div class="heart"></div><div class="heart"></div><div class="heart"></div>
-  <div class="heart"></div><div class="heart"></div><div class="heart"></div>
-  <div class="heart"></div><div class="heart"></div>
 
   <div id="login">
     <h2>Nowrin... please login</h2>
@@ -122,23 +101,25 @@
   <div id="chat">
     <h3 id="welcome"></h3>
     <div id="chat-box"></div>
-    <input id="msg" placeholder="Type message..." style="color: black;" />
-    <input type="file" id="file" accept="image/*,application/pdf" />
-    <button onclick="sendMsg()">Send</button>
+    <div id="send-container">
+      <label for="file" id="file-label">+</label>
+      <input type="file" id="file" accept="image/*,application/pdf" />
+      <input id="msg" placeholder="Type message..." style="color: black;" />
+      <button onclick="sendMsg()">Send</button>
+    </div>
   </div>
 
   <script>
     const socket = io();
     let currentUser = "";
-    let seenMessages = new Set();
 
     function login() {
       const u = document.getElementById("username").value.trim();
       const p = document.getElementById("password").value.trim();
       fetch("/login", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({username: u, password: p})
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: u, password: p })
       }).then(res => res.json()).then(data => {
         if (data.success) {
           currentUser = u;
@@ -146,7 +127,7 @@
           document.getElementById("chat").style.display = "block";
           document.getElementById("welcome").innerText = `Welcome, ${u} ❤️`;
           data.history.forEach(displayMessage);
-          socket.emit("seen", {user: currentUser});
+          socket.emit("seen", { user: currentUser });
         } else {
           document.getElementById("login-msg").innerText = "Invalid login.";
         }
@@ -158,6 +139,7 @@
       const fileInput = document.getElementById("file");
       const file = fileInput.files[0];
       const reader = new FileReader();
+
       if (file) {
         reader.onload = () => {
           socket.emit("message", {
@@ -169,8 +151,9 @@
         };
         reader.readAsDataURL(file);
       } else {
-        socket.emit("message", {user: currentUser, msg});
+        socket.emit("message", { user: currentUser, msg });
       }
+
       document.getElementById("msg").value = "";
       fileInput.value = "";
     }
@@ -179,7 +162,7 @@
       const div = document.createElement("div");
       div.className = "message " + (data.user === currentUser ? "me" : "other");
 
-      if (data.msg) div.innerHTML += `<div>${data.user}: ${data.msg}</div>`;
+      if (data.msg) div.innerHTML += `<div>${data.msg}</div>`;
 
       if (data.file && data.filename) {
         if (data.filename.endsWith(".pdf")) {
@@ -189,7 +172,7 @@
         }
       }
 
-      div.innerHTML += `<span class="timestamp">${data.time} <span class="tick">${data.user === currentUser ? (data.seen ? '✔✔' : '✔') : ''}</span></span>`;
+      div.innerHTML += `<div class="meta">${data.time} <span class="tick">${data.user === currentUser ? (data.seen ? '✔✔' : '✔') : ''}</span></div>`;
       document.getElementById("chat-box").appendChild(div);
       document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
     }
@@ -197,11 +180,11 @@
     socket.on("message", (data) => {
       displayMessage(data);
       if (data.user !== currentUser) {
-        socket.emit("seen", {user: currentUser});
+        socket.emit("seen", { user: currentUser });
       }
     });
 
-    socket.on("update_seen", (ids) => {
+    socket.on("update_seen", () => {
       const messages = document.querySelectorAll(".message");
       messages.forEach((div) => {
         if (div.classList.contains("me")) {
