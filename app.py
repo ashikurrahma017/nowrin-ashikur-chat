@@ -63,5 +63,13 @@ def handle_seen(data):
     save_messages()
     emit("update_seen", broadcast=True)
 
+@socketio.on("call")
+def handle_call(data):
+    emit("incoming_call", data, broadcast=True, include_self=False)
+
+@socketio.on("accept_call")
+def handle_accept_call(data):
+    emit("call_accepted", data, broadcast=True, include_self=False)
+
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=10000)
