@@ -5,14 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Nowrin & Ashikur Chat</title>
   <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
   <style>
     body {
-      margin: 0; padding: 0;
+      margin: 0;
+      padding: 0;
       font-family: 'Segoe UI', sans-serif;
       background: linear-gradient(to right top, #fbc2eb, #a6c1ee);
-      overflow-x: hidden; color: #fff;
+      color: #fff;
+      overflow-x: hidden;
     }
+
     #login, #chat {
       display: none;
       margin: 60px auto;
@@ -24,247 +26,291 @@
       text-align: center;
       box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     }
+
     #login { display: block; }
+
     input, button {
-      padding: 12px; margin: 10px 0;
+      padding: 12px;
+      margin: 10px 0;
       font-size: 16px;
+      width: 100%;
       border-radius: 10px;
-      border: none; color: black;
+      border: none;
+      color: black;
     }
+
     #chat-box {
-      height: 350px; overflow-y: auto;
+      height: 350px;
+      overflow-y: auto;
       padding: 10px;
       border-radius: 10px;
       background: rgba(255, 255, 255, 0.2);
       backdrop-filter: blur(10px);
+      color: black;
     }
+
     .message {
       margin: 10px 0;
       padding: 10px;
       border-radius: 10px;
       clear: both;
       max-width: 70%;
-      position: relative;
       word-wrap: break-word;
     }
-    .me { float: right; background: #dcf8c6; color: #000; }
-    .other { float: left; background: #eee; color: #000; }
+
+    .me {
+      float: right;
+      background: #dcf8c6;
+      color: #000;
+    }
+
+    .other {
+      float: left;
+      background: #eee;
+      color: #000;
+    }
+
     .meta {
-      font-size: 12px; color: #555;
+      font-size: 12px;
+      color: #666;
       display: flex;
       justify-content: flex-end;
       align-items: center;
       gap: 6px;
-      margin-top: 6px;
+      margin-top: 4px;
+      white-space: nowrap;
     }
+
     .tick {
-      font-size: 14px; color: #4caf50;
+      font-size: 14px;
+      color: #4caf50;
     }
+
     #send-container {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
+      margin-top: 10px;
     }
+
     #file-label {
       background: #fff3;
       color: black;
       border-radius: 50%;
-      width: 32px; height: 32px;
-      text-align: center; line-height: 32px;
-      font-size: 20px; cursor: pointer;
+      width: 32px;
+      height: 32px;
+      text-align: center;
+      line-height: 32px;
+      font-size: 20px;
+      cursor: pointer;
     }
+
     #file {
       display: none;
     }
+
     #msg {
       flex-grow: 1;
       color: black;
-      padding: 10px;
       border-radius: 10px;
-      border: 1px solid #ccc;
+      padding: 10px;
+      font-family: monospace;
       font-size: 16px;
+      border: 1px solid #ccc;
     }
-    #send-btn {
-      width: 50px; height: 40px;
-      font-size: 20px;
-      background: #f06292;
-      color: white;
-      border-radius: 50%;
-      cursor: pointer;
-    }
-    #send-btn:hover {
-      background: #ec407a;
-    }
+
     #emoji-btn {
+      font-size: 22px;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+    }
+
+    .send-btn {
       background: none;
       border: none;
-      font-size: 24px;
+      font-size: 22px;
       cursor: pointer;
-      user-select: none;
+      color: #fff;
+      background-color: #4caf50;
+      padding: 10px;
+      border-radius: 50%;
     }
-    emoji-picker {
-      position: absolute;
-      bottom: 80px;
-      right: 30px;
-      z-index: 100;
-      display: none;
-    }
-    #typing-status {
-      font-size: 13px;
+
+    #typing {
+      text-align: left;
       margin-top: 5px;
-      color: #ffd;
-      text-align: center;
+      font-size: 13px;
       font-style: italic;
+      color: #000;
+      padding-left: 5px;
+    }
+
+    @media(max-width: 480px) {
+      #login, #chat {
+        width: 90%;
+        margin: 40px auto;
+        padding: 20px;
+      }
+
+      #chat-box {
+        height: 250px;
+      }
+
+      .send-btn {
+        font-size: 20px;
+      }
     }
   </style>
 </head>
 <body>
 
-<audio id="ping" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3"></audio>
-
-<div id="login">
-  <h2>Nowrin... please login</h2>
-  <input id="username" placeholder="Username" />
-  <input id="password" type="password" placeholder="Password" />
-  <button onclick="login()">Login</button>
-  <p id="login-msg" style="color: pink;"></p>
-</div>
-
-<div id="chat">
-  <h3 id="welcome"></h3>
-  <div id="chat-box"></div>
-  <div id="typing-status"></div>
-  <div id="send-container">
-    <label for="file" id="file-label">+</label>
-    <input type="file" id="file" accept="image/*,application/pdf" />
-    <button id="emoji-btn">😊</button>
-    <input id="msg" placeholder="Type message..." />
-    <button id="send-btn" onclick="sendMsg()">➤</button>
-    <emoji-picker id="emoji-picker"></emoji-picker>
+  <div id="login">
+    <h2>Nowrin... please login</h2>
+    <input id="username" placeholder="Username" />
+    <input id="password" type="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+    <p id="login-msg" style="color: pink;"></p>
   </div>
-</div>
 
-<script>
-  const socket = io();
-  let currentUser = "";
-  const msgInput = document.getElementById("msg");
-  const typingStatus = document.getElementById("typing-status");
-  const emojiPicker = document.getElementById("emoji-picker");
+  <div id="chat">
+    <h3 id="welcome"></h3>
+    <div id="chat-box"></div>
+    <div id="typing"></div>
+    <div id="send-container">
+      <label for="file" id="file-label">+</label>
+      <input type="file" id="file" accept="image/*,application/pdf" />
+      <button id="emoji-btn">😊</button>
+      <input id="msg" placeholder="Type message..." />
+      <button class="send-btn" onclick="sendMsg()">➤</button>
+    </div>
+  </div>
 
-  // Login
-  function login() {
-    const u = document.getElementById("username").value.trim();
-    const p = document.getElementById("password").value.trim();
-    fetch("/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: u, password: p })
-    }).then(res => res.json()).then(data => {
-      if (data.success) {
-        currentUser = u;
-        document.getElementById("login").style.display = "none";
-        document.getElementById("chat").style.display = "block";
-        document.getElementById("welcome").innerText = `Welcome, ${u} ❤️`;
-        data.history.forEach(displayMessage);
-        socket.emit("seen", { user: currentUser });
+  <audio id="receiveSound" src="https://www.soundjay.com/buttons/sounds/button-09.mp3" preload="auto"></audio>
+
+  <script>
+    const socket = io();
+    let currentUser = "";
+
+    function login() {
+      const u = document.getElementById("username").value.trim();
+      const p = document.getElementById("password").value.trim();
+      fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: u, password: p })
+      }).then(res => res.json()).then(data => {
+        if (data.success) {
+          currentUser = u;
+          document.getElementById("login").style.display = "none";
+          document.getElementById("chat").style.display = "block";
+          document.getElementById("welcome").innerText = `Welcome, ${u} ❤️`;
+          data.history.forEach(displayMessage);
+          socket.emit("seen", { user: currentUser });
+        } else {
+          document.getElementById("login-msg").innerText = "Invalid login.";
+        }
+      });
+    }
+
+    function sendMsg() {
+      const msg = document.getElementById("msg").value.trim();
+      const fileInput = document.getElementById("file");
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+
+      if (!msg && !file) return;
+
+      if (file) {
+        reader.onload = () => {
+          socket.emit("message", {
+            user: currentUser,
+            msg,
+            file: reader.result,
+            filename: file.name
+          });
+        };
+        reader.readAsDataURL(file);
       } else {
-        document.getElementById("login-msg").innerText = "Invalid login.";
+        socket.emit("message", { user: currentUser, msg });
       }
-    });
-  }
 
-  // Send
-  function sendMsg() {
-    const msg = msgInput.value.trim();
-    const fileInput = document.getElementById("file");
-    const file = fileInput.files[0];
-    const reader = new FileReader();
+      document.getElementById("msg").value = "";
+      fileInput.value = "";
+      socket.emit("typing", { user: currentUser, typing: false });
+    }
 
-    if (!msg && !file) return;
+    function displayMessage(data) {
+      const div = document.createElement("div");
+      div.className = "message " + (data.user === currentUser ? "me" : "other");
 
-    if (file) {
-      reader.onload = () => {
-        socket.emit("message", {
-          user: currentUser,
-          msg,
-          file: reader.result,
-          filename: file.name
-        });
+      if (data.msg) div.innerHTML += `<div>${escapeHtml(data.msg)}</div>`;
+
+      if (data.file && data.filename) {
+        if (data.filename.endsWith(".pdf")) {
+          div.innerHTML += `<a href="${data.file}" target="_blank">📄 View PDF</a>`;
+        } else {
+          div.innerHTML += `<img src="${data.file}" style="max-width:200px; border-radius:10px;" />`;
+        }
+      }
+
+      div.innerHTML += `<div class="meta">${data.time}&nbsp;<span class="tick">${data.user === currentUser ? (data.seen ? '✔✔' : '✔') : ''}</span></div>`;
+      document.getElementById("chat-box").appendChild(div);
+      document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
+
+      if (data.user !== currentUser) {
+        document.getElementById("receiveSound").play();
+      }
+    }
+
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
       };
-      reader.readAsDataURL(file);
-    } else {
-      socket.emit("message", { user: currentUser, msg });
+      return text.replace(/[&<>"']/g, m => map[m]);
     }
 
-    msgInput.value = "";
-    fileInput.value = "";
-    emojiPicker.style.display = "none";
-  }
-
-  // Display message
-  function displayMessage(data) {
-    const div = document.createElement("div");
-    div.className = "message " + (data.user === currentUser ? "me" : "other");
-
-    if (data.msg) div.innerHTML += `<div>${data.msg}</div>`;
-
-    if (data.file && data.filename) {
-      if (data.filename.endsWith(".pdf")) {
-        div.innerHTML += `<a href="${data.file}" target="_blank">📄 View PDF</a>`;
-      } else {
-        div.innerHTML += `<img src="${data.file}" style="max-width:200px; border-radius:10px;" />`;
-      }
-    }
-
-    div.innerHTML += `<div class="meta">${data.time}<span class="tick">${data.user === currentUser ? (data.seen ? ' ✔✔' : ' ✔') : ''}</span></div>`;
-    document.getElementById("chat-box").appendChild(div);
-    document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
-  }
-
-  // Message receive
-  socket.on("message", (data) => {
-    displayMessage(data);
-    if (data.user !== currentUser) {
-      socket.emit("seen", { user: currentUser });
-      document.getElementById("ping").play();
-    }
-  });
-
-  // Seen tick update
-  socket.on("update_seen", () => {
-    const messages = document.querySelectorAll(".message");
-    messages.forEach((div) => {
-      if (div.classList.contains("me")) {
-        const tick = div.querySelector(".tick");
-        if (tick) tick.innerText = "✔✔";
+    socket.on("message", (data) => {
+      displayMessage(data);
+      if (data.user !== currentUser) {
+        socket.emit("seen", { user: currentUser });
       }
     });
-  });
 
-  // Typing indicator
-  msgInput.addEventListener("input", () => {
-    socket.emit("typing", { user: currentUser });
-  });
+    socket.on("update_seen", () => {
+      const messages = document.querySelectorAll(".message.me .tick");
+      messages.forEach(tick => tick.innerText = "✔✔");
+    });
 
-  socket.on("typing", (data) => {
-    if (data.user !== currentUser) {
-      typingStatus.innerText = `${data.user} is typing...`;
-      clearTimeout(window.typingTimeout);
-      window.typingTimeout = setTimeout(() => typingStatus.innerText = "", 2000);
-    }
-  });
+    // Typing indicator
+    const msgInput = document.getElementById("msg");
+    msgInput.addEventListener("input", () => {
+      socket.emit("typing", { user: currentUser, typing: msgInput.value.length > 0 });
+    });
 
-  // Emoji Picker Toggle
-  document.getElementById("emoji-btn").addEventListener("click", () => {
-    emojiPicker.style.display = emojiPicker.style.display === "none" ? "block" : "none";
-  });
+    socket.on("typing", (data) => {
+      const typingDiv = document.getElementById("typing");
+      if (data.user !== currentUser && data.typing) {
+        typingDiv.innerText = `${data.user} is typing...`;
+      } else {
+        typingDiv.innerText = "";
+      }
+    });
 
-  // On emoji pick
-  emojiPicker.addEventListener("emoji-click", event => {
-    msgInput.value += event.detail.unicode;
-    msgInput.focus();
-  });
-</script>
+    // Emoji picker
+    document.getElementById("emoji-btn").addEventListener("click", () => {
+      const emojiList = ["😍", "😘", "🥰", "😊", "😂", "😎", "💖", "😭", "🤗", "😳"];
+      const picker = prompt("Choose emoji:\n" + emojiList.join(" "));
+      if (picker) {
+        msgInput.value += picker;
+        msgInput.focus();
+      }
+    });
+  </script>
 </body>
 </html>
