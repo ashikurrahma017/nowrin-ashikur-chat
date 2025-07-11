@@ -74,30 +74,21 @@
     }
 
     button {
-      background: #f06292;
-      color: white;
-      font-weight: 700;
       cursor: pointer;
       box-shadow: 0 4px 15px rgba(240, 98, 146, 0.6);
-      transition: background-color 0.3s ease;
-      border-radius: 50%;
-      width: 48px;
-      height: 48px;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    button:hover {
-      background: #ec407a;
-      box-shadow: 0 6px 20px rgba(236, 64, 122, 0.9);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+      font-weight: 700;
+      color: white;
+      border: none;
     }
 
-    button svg {
-      width: 24px;
-      height: 24px;
-      fill: white;
-      transform: rotate(45deg);
+    #login button {
+      background: #f06292;
+      border-radius: 12px;
+    }
+    #login button:hover {
+      background: #ec407a;
+      box-shadow: 0 6px 20px rgba(236, 64, 122, 0.9);
     }
 
     #chat-box {
@@ -126,7 +117,7 @@
 
     .message {
       max-width: 75%;
-      padding: 12px 15px 20px 15px; /* add bottom padding for meta */
+      padding: 12px 15px 20px 15px;
       margin: 8px 0;
       border-radius: 20px;
       word-wrap: break-word;
@@ -219,6 +210,33 @@
       display: none;
     }
 
+    /* Premium heart-shaped send button */
+    #send-btn {
+      background: linear-gradient(135deg, #f43f5e, #f06292);
+      border-radius: 50% 50% 50% 0;
+      width: 50px;
+      height: 50px;
+      box-shadow: 0 5px 15px rgba(244, 63, 94, 0.8);
+      position: relative;
+      transform: rotate(-45deg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: box-shadow 0.3s ease, transform 0.3s ease;
+      border: none;
+      cursor: pointer;
+    }
+    #send-btn:hover {
+      box-shadow: 0 8px 25px rgba(244, 63, 94, 1);
+      transform: rotate(-45deg) scale(1.05);
+    }
+    #send-btn svg {
+      fill: white;
+      width: 28px;
+      height: 28px;
+      transform: rotate(45deg);
+    }
+
     /* Responsive */
     @media (max-width: 500px) {
       #login, #chat {
@@ -243,11 +261,11 @@
         font-size: 22px;
         line-height: 34px;
       }
-      button {
+      #send-btn {
         width: 44px;
         height: 44px;
       }
-      button svg {
+      #send-btn svg {
         width: 20px;
         height: 20px;
       }
@@ -264,7 +282,7 @@
     <input id="username" placeholder="Username" autocomplete="off" />
     <input id="password" type="password" placeholder="Password" autocomplete="off" />
     <button onclick="login()">Login</button>
-    <p id="login-msg" style="color: pink;"></p>
+    <p id="login-msg" style="color: pink; margin-top: 10px;"></p>
   </div>
 
   <div id="chat">
@@ -274,7 +292,7 @@
       <label for="file" id="file-label" title="Attach Image or PDF">+</label>
       <input type="file" id="file" accept="image/*,application/pdf" />
       <input id="msg" placeholder="Type message..." autocomplete="off" />
-      <button id="send-btn" aria-label="Send message">
+      <button id="send-btn" aria-label="Send message" title="Send">
         <svg viewBox="0 0 24 24">
           <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
         </svg>
@@ -282,7 +300,8 @@
     </div>
   </div>
 
-  <audio id="msg-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+  <!-- Premium message received sound -->
+  <audio id="msg-sound" src="https://cdn.pixabay.com/download/audio/2022/02/15/audio_f6e0e4a7f6.mp3?filename=pop-sound-13264.mp3" preload="auto"></audio>
 
   <script>
     const socket = io();
