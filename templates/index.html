@@ -1,152 +1,256 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" >
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>Nowrin & Ashikur Chat</title>
   <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
   <style>
+    /* Reset and base */
+    * {
+      box-sizing: border-box;
+    }
     body {
       margin: 0;
       padding: 0;
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(to right top, #fbc2eb, #a6c1ee);
-      overflow-x: hidden;
       color: #fff;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
     }
 
     #login, #chat {
-      display: none;
-      margin: 60px auto;
-      padding: 30px;
-      max-width: 400px;
-      border-radius: 18px;
-      background: rgba(250, 182, 212, 0.25);
-      backdrop-filter: blur(12px);
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(15px);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+      width: 100%;
+      max-width: 420px;
+      padding: 30px 25px;
       text-align: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     }
-    #login { display: block; }
+    #login {
+      display: block;
+    }
+    #chat {
+      display: none;
+      height: 90vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    h2, h3 {
+      margin: 0 0 20px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 0 5px rgba(255,255,255,0.5);
+    }
 
     input, button {
-      padding: 12px;
-      margin: 10px 0;
       font-size: 16px;
-      width: 100%;
-      border-radius: 10px;
+      border-radius: 12px;
       border: none;
-      color: black;
+      outline: none;
+      padding: 14px 18px;
+      margin: 10px 0;
+      width: 100%;
+      font-weight: 600;
+      color: #111;
+      transition: box-shadow 0.3s ease;
+    }
+
+    input::placeholder {
+      color: #666;
+    }
+
+    input:focus {
+      box-shadow: 0 0 10px #f06292;
+    }
+
+    button {
+      background: #f06292;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(240, 98, 146, 0.6);
+      transition: background-color 0.3s ease;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    button:hover {
+      background: #ec407a;
+      box-shadow: 0 6px 20px rgba(236, 64, 122, 0.9);
+    }
+
+    /* Send arrow icon */
+    button svg {
+      width: 24px;
+      height: 24px;
+      fill: white;
+      transform: rotate(45deg);
     }
 
     #chat-box {
-      height: 350px;
+      flex-grow: 1;
       overflow-y: auto;
-      padding: 10px;
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.2);
+      padding: 15px 10px 15px 10px;
+      margin-bottom: 15px;
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.25);
       backdrop-filter: blur(10px);
+      color: #000;
+      font-size: 15px;
+      scrollbar-width: thin;
+      scrollbar-color: #f06292 transparent;
+    }
+    /* Custom scrollbar for WebKit */
+    #chat-box::-webkit-scrollbar {
+      width: 8px;
+    }
+    #chat-box::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #chat-box::-webkit-scrollbar-thumb {
+      background-color: #f06292;
+      border-radius: 10px;
     }
 
     .message {
-      position: relative;
-      margin: 10px 0;
-      padding: 10px 10px 20px 10px;
       max-width: 75%;
-      border-radius: 8px;
-      clear: both;
+      padding: 12px 15px;
+      margin: 8px 0;
+      border-radius: 20px;
       word-wrap: break-word;
+      position: relative;
       font-size: 15px;
+      line-height: 1.3;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
     }
 
     .me {
-      float: right;
-      background-color: #dcf8c6;
+      margin-left: auto;
+      background: #dcf8c6;
       color: #000;
-      border-bottom-right-radius: 0;
+      border-bottom-right-radius: 5px;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
     }
 
     .other {
-      float: left;
-      background-color: #fff;
+      margin-right: auto;
+      background: #fff;
       color: #000;
-      border-bottom-left-radius: 0;
+      border-bottom-left-radius: 5px;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
     }
 
     .meta {
-      position: absolute;
-      bottom: 4px;
-      right: 8px;
-      font-size: 12px;
+      margin-top: 6px;
+      font-size: 11px;
+      color: #555;
       display: flex;
+      justify-content: flex-end;
       align-items: center;
       gap: 4px;
-      color: #888;
+      user-select: none;
     }
 
     .tick {
       font-size: 14px;
-    }
-
-    .tick-seen {
-      color: #34b7f1;
-    }
-
-    img {
-      margin-top: 6px;
-      border-radius: 10px;
-      max-width: 200px;
-    }
-
-    a {
-      display: inline-block;
-      margin-top: 6px;
-      color: #3b5998;
-      font-weight: bold;
-      text-decoration: none;
+      color: #4caf50;
+      line-height: 0;
     }
 
     #send-container {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    #file-label {
-      display: inline-block;
-      background: #fff3;
-      color: black;
-      border-radius: 50%;
-      width: 32px;
-      height: 32px;
-      text-align: center;
-      line-height: 32px;
-      font-size: 20px;
-      cursor: pointer;
-    }
-
-    #file {
-      display: none;
+      gap: 12px;
     }
 
     #msg {
       flex-grow: 1;
-      color: black;
-      border-radius: 10px;
-      padding: 10px;
+      border-radius: 20px;
+      padding: 12px 20px;
       font-size: 16px;
-      border: 1px solid #ccc;
+      font-family: monospace;
+      border: none;
+      outline: none;
+      box-shadow: inset 0 0 5px #ccc;
+      color: #000;
+      transition: box-shadow 0.3s ease;
+    }
+    #msg:focus {
+      box-shadow: inset 0 0 8px #f06292;
     }
 
-    #send-button {
-      width: 48px;
-      height: 48px;
-      background-color: #25d366;
-      color: white;
-      border: none;
+    #file-label {
+      background: #fff3;
+      color: black;
       border-radius: 50%;
-      font-size: 22px;
+      width: 38px;
+      height: 38px;
+      text-align: center;
+      line-height: 38px;
+      font-size: 26px;
       cursor: pointer;
+      user-select: none;
+      box-shadow: 0 4px 15px rgba(240, 98, 146, 0.4);
+      transition: box-shadow 0.3s ease;
+      flex-shrink: 0;
+    }
+    #file-label:hover {
+      box-shadow: 0 6px 25px rgba(236, 64, 122, 0.7);
+    }
+    #file {
+      display: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 500px) {
+      #login, #chat {
+        max-width: 100%;
+        height: 100vh;
+        padding: 20px 15px;
+      }
+      #chat {
+        height: 100vh;
+      }
+      #chat-box {
+        font-size: 14px;
+        padding: 12px 8px;
+      }
+      .message {
+        max-width: 85%;
+        font-size: 14px;
+      }
+      #file-label {
+        width: 34px;
+        height: 34px;
+        font-size: 22px;
+        line-height: 34px;
+      }
+      button {
+        width: 44px;
+        height: 44px;
+      }
+      button svg {
+        width: 20px;
+        height: 20px;
+      }
+      #msg {
+        font-size: 15px;
+      }
     }
   </style>
 </head>
@@ -154,8 +258,8 @@
 
   <div id="login">
     <h2>Nowrin... please login</h2>
-    <input id="username" placeholder="Username" />
-    <input id="password" type="password" placeholder="Password" />
+    <input id="username" placeholder="Username" autocomplete="off" />
+    <input id="password" type="password" placeholder="Password" autocomplete="off" />
     <button onclick="login()">Login</button>
     <p id="login-msg" style="color: pink;"></p>
   </div>
@@ -164,20 +268,39 @@
     <h3 id="welcome"></h3>
     <div id="chat-box"></div>
     <div id="send-container">
-      <label for="file" id="file-label">+</label>
+      <label for="file" id="file-label" title="Attach Image or PDF">+</label>
       <input type="file" id="file" accept="image/*,application/pdf" />
-      <input id="msg" placeholder="Type message..." />
-      <button id="send-button" onclick="sendMsg()">➤</button>
+      <input id="msg" placeholder="Type message..." autocomplete="off" />
+      <button id="send-btn" aria-label="Send message">
+        <!-- WhatsApp-style send arrow -->
+        <svg viewBox="0 0 24 24">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+        </svg>
+      </button>
     </div>
   </div>
+
+  <!-- Message received sound -->
+  <audio id="msg-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
   <script>
     const socket = io();
     let currentUser = "";
 
+    const msgSound = document.getElementById("msg-sound");
+    const chatBox = document.getElementById("chat-box");
+    const msgInput = document.getElementById("msg");
+    const sendBtn = document.getElementById("send-btn");
+    const fileInput = document.getElementById("file");
+
+    // Login function
     function login() {
       const u = document.getElementById("username").value.trim();
       const p = document.getElementById("password").value.trim();
+      if (!u || !p) {
+        document.getElementById("login-msg").innerText = "Please enter username and password.";
+        return;
+      }
       fetch("/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -186,25 +309,25 @@
         if (data.success) {
           currentUser = u;
           document.getElementById("login").style.display = "none";
-          document.getElementById("chat").style.display = "block";
+          document.getElementById("chat").style.display = "flex";
           document.getElementById("welcome").innerText = `Welcome, ${u} ❤️`;
           data.history.forEach(displayMessage);
           socket.emit("seen", { user: currentUser });
+          msgInput.focus();
         } else {
           document.getElementById("login-msg").innerText = "Invalid login.";
         }
       });
     }
 
+    // Send message function
     function sendMsg() {
-      const msg = document.getElementById("msg").value.trim();
-      const fileInput = document.getElementById("file");
+      const msg = msgInput.value.trim();
       const file = fileInput.files[0];
-      const reader = new FileReader();
-
       if (!msg && !file) return;
 
       if (file) {
+        const reader = new FileReader();
         reader.onload = () => {
           socket.emit("message", {
             user: currentUser,
@@ -218,42 +341,66 @@
         socket.emit("message", { user: currentUser, msg });
       }
 
-      document.getElementById("msg").value = "";
+      msgInput.value = "";
       fileInput.value = "";
+      msgInput.focus();
     }
 
+    // Display message in chat box
+    function displayMessage(data) {
+      const div = document.createElement("div");
+      div.className = "message " + (data.user === currentUser ? "me" : "other");
+
+      if (data.msg) {
+        div.innerHTML += `<div>${escapeHtml(data.msg)}</div>`;
+      }
+
+      if (data.file && data.filename) {
+        if (data.filename.toLowerCase().endsWith(".pdf")) {
+          div.innerHTML += `<a href="${data.file}" target="_blank" rel="noopener noreferrer" style="color:#3b5998;">📄 View PDF</a>`;
+        } else {
+          div.innerHTML += `<img src="${data.file}" style="max-width:200px; border-radius:10px; margin-top:6px;" />`;
+        }
+      }
+
+      // Time and ticks side by side
+      div.innerHTML += `
+        <div class="meta">
+          <span>${data.time}</span>
+          <span class="tick">${data.user === currentUser ? (data.seen ? '✔✔' : '✔') : ''}</span>
+        </div>`;
+
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      // Play sound only if the message is from other user
+      if (data.user !== currentUser) {
+        msgSound.play().catch(() => {}); // ignore play error
+      }
+    }
+
+    // Escape HTML to prevent XSS
     function escapeHtml(text) {
       const map = {
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
       };
       return text.replace(/[&<>"']/g, m => map[m]);
     }
 
-    function displayMessage(data) {
-      const div = document.createElement("div");
-      const isMe = data.user === currentUser;
-      div.className = "message " + (isMe ? "me" : "other");
-
-      if (data.msg) div.innerHTML += `<div>${escapeHtml(data.msg)}</div>`;
-
-      if (data.file && data.filename) {
-        if (data.filename.toLowerCase().endsWith(".pdf")) {
-          div.innerHTML += `<a href="${data.file}" target="_blank">📄 View PDF</a>`;
-        } else {
-          div.innerHTML += `<img src="${data.file}" />`;
-        }
+    // Event listeners
+    sendBtn.addEventListener("click", sendMsg);
+    msgInput.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMsg();
       }
+    });
 
-      let tickHTML = "";
-      if (isMe) {
-        tickHTML = `<span class="tick ${data.seen ? 'tick-seen' : ''}">${data.seen ? '✔✔' : '✔'}</span>`;
-      }
-
-      div.innerHTML += `<div class="meta">${data.time} ${tickHTML}</div>`;
-      document.getElementById("chat-box").appendChild(div);
-      document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
-    }
-
+    // Socket events
     socket.on("message", (data) => {
       displayMessage(data);
       if (data.user !== currentUser) {
@@ -262,8 +409,11 @@
     });
 
     socket.on("update_seen", () => {
-      const messages = document.querySelectorAll(".message.me .tick");
-      messages.forEach(tick => tick.innerText = "✔✔" && tick.classList.add("tick-seen"));
+      const messages = document.querySelectorAll(".message.me");
+      messages.forEach((div) => {
+        const tick = div.querySelector(".tick");
+        if (tick) tick.innerText = "✔✔";
+      });
     });
   </script>
 </body>
