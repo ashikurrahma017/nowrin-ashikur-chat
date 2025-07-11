@@ -3,20 +3,21 @@ from flask_socketio import SocketIO, emit
 from datetime import datetime
 import pytz
 
-app = Flask(__name__, static_url_path='', static_folder='.')
+app = Flask(__name__)
 socketio = SocketIO(app)
 
+# Hardcoded users
 users = {
     "Nowrin": "nowrin007",
     "Ashikur": "ashikur01788"
 }
 
+# Store messages in memory
 message_history = []
-seen_by = set()
 
 @app.route('/')
 def index():
-    return app.send_static_file('index.html')
+    return render_template('index.html')
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -36,6 +37,7 @@ def handle_message(data):
         "time": bd_time,
         "seen": False
     }
+
     if "file" in data:
         message["file"] = data["file"]
         message["filename"] = data["filename"]
@@ -44,7 +46,7 @@ def handle_message(data):
     emit("message", message, broadcast=True)
 
 @socketio.on("seen")
-def update_seen(data):
+def handle_seen(data):
     for msg in message_history:
         if msg["user"] != data["user"]:
             msg["seen"] = True
