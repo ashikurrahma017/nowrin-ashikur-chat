@@ -1,56 +1,237 @@
-from flask import Flask, render_template, request, jsonify
-from flask_socketio import SocketIO, emit
-from datetime import datetime
-import pytz
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nowrin & Ashikur Chat</title>
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right top, #fbc2eb, #a6c1ee);
+      overflow-x: hidden;
+      color: #fff;
+    }
+    .heart {
+      position: absolute;
+      width: 15px;
+      height: 15px;
+      background: pink;
+      transform: rotate(45deg);
+      animation: float 10s linear infinite;
+      opacity: 0.7;
+      border-radius: 3px;
+    }
+    .heart::before,
+    .heart::after {
+      content: '';
+      position: absolute;
+      width: 15px;
+      height: 15px;
+      background: pink;
+      border-radius: 50%;
+    }
+    .heart::before { top: -7.5px; left: 0; }
+    .heart::after { left: -7.5px; top: 0; }
+    @keyframes float {
+      0% { bottom: -20px; opacity: 0; }
+      50% { opacity: 1; }
+      100% { bottom: 100%; transform: translateX(-50px) rotate(45deg); opacity: 0; }
+    }
+    .heart:nth-child(1) { left: 10%; animation-duration: 9s; }
+    .heart:nth-child(2) { left: 20%; animation-duration: 12s; }
+    .heart:nth-child(3) { left: 30%; animation-duration: 8s; }
+    .heart:nth-child(4) { left: 50%; animation-duration: 14s; }
+    .heart:nth-child(5) { left: 60%; animation-duration: 11s; }
+    .heart:nth-child(6) { left: 70%; animation-duration: 10s; }
+    .heart:nth-child(7) { left: 80%; animation-duration: 13s; }
+    .heart:nth-child(8) { left: 90%; animation-duration: 9s; }
 
-app = Flask(__name__)
-socketio = SocketIO(app)
+    #login, #chat {
+      display: none;
+      margin: 60px auto;
+      padding: 30px;
+      max-width: 400px;
+      border-radius: 18px;
+      background: rgba(250, 182, 212, 0.25);
+      backdrop-filter: blur(12px);
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    #login { display: block; }
+    input, button {
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 16px;
+      width: 100%;
+      border-radius: 10px;
+      border: none;
+      color: black;
+    }
+    #chat-box {
+      height: 350px;
+      overflow-y: auto;
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+    }
+    .message {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 10px;
+      clear: both;
+      max-width: 70%;
+      position: relative;
+    }
+    .me { float: right; background: #dcf8c6; color: #000; }
+    .other { float: left; background: #eee; color: #000; }
+    .meta {
+      font-size: 12px;
+      color: #666;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .tick {
+      font-size: 14px;
+    }
+    #send-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    #file-label {
+      display: inline-block;
+      background: #fff3;
+      color: black;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      text-align: center;
+      line-height: 32px;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    #file {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="heart"></div><div class="heart"></div><div class="heart"></div>
+  <div class="heart"></div><div class="heart"></div><div class="heart"></div>
+  <div class="heart"></div><div class="heart"></div>
 
-# Hardcoded users
-users = {
-    "Nowrin": "nowrin007",
-    "Ashikur": "ashikur01788"
-}
+  <div id="login">
+    <h2>Nowrin... please login</h2>
+    <input id="username" placeholder="Username" />
+    <input id="password" type="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+    <p id="login-msg" style="color: pink;"></p>
+  </div>
 
-# Store messages in memory
-message_history = []
+  <div id="chat">
+    <h3 id="welcome"></h3>
+    <div id="chat-box"></div>
+    <div id="send-container">
+      <label for="file" id="file-label">+</label>
+      <input type="file" id="file" accept="image/*,application/pdf" />
+      <input id="msg" placeholder="Type message..." style="color: black;" />
+      <button onclick="sendMsg()">Send</button>
+    </div>
+  </div>
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+  <script>
+    const socket = io();
+    let currentUser = "";
 
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.json
-    username = data.get("username")
-    password = data.get("password")
-    if users.get(username) == password:
-        return jsonify(success=True, history=message_history)
-    return jsonify(success=False)
-
-@socketio.on("message")
-def handle_message(data):
-    bd_time = datetime.now(pytz.timezone("Asia/Dhaka")).strftime("%I:%M %p")
-    message = {
-        "user": data["user"],
-        "msg": data.get("msg", ""),
-        "time": bd_time,
-        "seen": False
+    function login() {
+      const u = document.getElementById("username").value.trim();
+      const p = document.getElementById("password").value.trim();
+      fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: u, password: p })
+      }).then(res => res.json()).then(data => {
+        if (data.success) {
+          currentUser = u;
+          document.getElementById("login").style.display = "none";
+          document.getElementById("chat").style.display = "block";
+          document.getElementById("welcome").innerText = `Welcome, ${u} ❤️`;
+          data.history.forEach(displayMessage);
+          socket.emit("seen", { user: currentUser });
+        } else {
+          document.getElementById("login-msg").innerText = "Invalid login.";
+        }
+      });
     }
 
-    if "file" in data:
-        message["file"] = data["file"]
-        message["filename"] = data["filename"]
+    function sendMsg() {
+      const msg = document.getElementById("msg").value.trim();
+      const fileInput = document.getElementById("file");
+      const file = fileInput.files[0];
+      const reader = new FileReader();
 
-    message_history.append(message)
-    emit("message", message, broadcast=True)
+      if (file) {
+        reader.onload = () => {
+          socket.emit("message", {
+            user: currentUser,
+            msg,
+            file: reader.result,
+            filename: file.name
+          });
+        };
+        reader.readAsDataURL(file);
+      } else {
+        socket.emit("message", { user: currentUser, msg });
+      }
 
-@socketio.on("seen")
-def handle_seen(data):
-    for msg in message_history:
-        if msg["user"] != data["user"]:
-            msg["seen"] = True
-    emit("update_seen", list(range(len(message_history))), broadcast=True)
+      document.getElementById("msg").value = "";
+      fileInput.value = "";
+    }
 
-if __name__ == '__main__':
-    socketio.run(app, host="0.0.0.0", port=5000)
+    function displayMessage(data) {
+      const div = document.createElement("div");
+      div.className = "message " + (data.user === currentUser ? "me" : "other");
+
+      if (data.msg) div.innerHTML += `<div>${data.msg}</div>`;
+
+      if (data.file && data.filename) {
+        if (data.filename.endsWith(".pdf")) {
+          div.innerHTML += `<a href="${data.file}" target="_blank">📄 View PDF</a>`;
+        } else {
+          div.innerHTML += `<img src="${data.file}" style="max-width:200px; border-radius:10px;" />`;
+        }
+      }
+
+      div.innerHTML += `<div class="meta">${data.time} <span class="tick">${data.user === currentUser ? (data.seen ? '✔✔' : '✔') : ''}</span></div>`;
+
+      document.getElementById("chat-box").appendChild(div);
+      document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
+    }
+
+    socket.on("message", (data) => {
+      displayMessage(data);
+      if (data.user !== currentUser) {
+        socket.emit("seen", { user: currentUser });
+      }
+    });
+
+    socket.on("update_seen", () => {
+      const messages = document.querySelectorAll(".message");
+      messages.forEach((div) => {
+        if (div.classList.contains("me")) {
+          const tick = div.querySelector(".tick");
+          if (tick) tick.innerText = "✔✔";
+        }
+      });
+    });
+  </script>
+</body>
+</html>
