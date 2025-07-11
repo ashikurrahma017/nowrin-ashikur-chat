@@ -24,8 +24,7 @@
       opacity: 0.7;
       border-radius: 3px;
     }
-    .heart::before,
-    .heart::after {
+    .heart::before, .heart::after {
       content: '';
       position: absolute;
       width: 15px;
@@ -143,6 +142,19 @@
     #send-btn:hover {
       background: #ec407a;
     }
+    #call-btn {
+      font-size: 20px;
+      border: none;
+      background: #fff3;
+      color: #000;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      cursor: pointer;
+    }
+    #call-btn:hover {
+      background: #fff5;
+    }
   </style>
 </head>
 <body>
@@ -166,12 +178,22 @@
       <input type="file" id="file" accept="image/*,application/pdf" />
       <input id="msg" placeholder="Type message..." />
       <button id="send-btn" onclick="sendMsg()">➤</button>
+      <button id="call-btn" title="Call Nowrin">📞</button>
     </div>
   </div>
+
+  <!-- Audio elements -->
+  <audio id="remoteAudio" autoplay></audio>
+  <audio id="localAudio" muted autoplay></audio>
 
   <script>
     const socket = io();
     let currentUser = "";
+    let localStream, peerConnection;
+
+    const servers = {
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    };
 
     function login() {
       const u = document.getElementById("username").value.trim();
@@ -210,7 +232,7 @@
           });
         };
         reader.readAsDataURL(file);
-      } else {
+      } else if (msg) {
         socket.emit("message", { user: currentUser, msg });
       }
 
@@ -246,13 +268,71 @@
     });
 
     socket.on("update_seen", () => {
-      const messages = document.querySelectorAll(".message");
-      messages.forEach((div) => {
+      document.querySelectorAll(".message").forEach(div => {
         if (div.classList.contains("me")) {
           const tick = div.querySelector(".tick");
           if (tick) tick.innerText = "✔✔";
         }
       });
+    });
+
+    // CALLING LOGIC
+    document.getElementById("call-btn").onclick = async () => {
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      document.getElementById("localAudio").srcObject = localStream;
+      peerConnection = new RTCPeerConnection(servers);
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+      peerConnection.onicecandidate = e => {
+        if (e.candidate) {
+          socket.emit("call", { user: currentUser, candidate: e.candidate });
+        }
+      };
+
+      peerConnection.ontrack = e => {
+        document.getElementById("remoteAudio").srcObject = e.streams[0];
+      };
+
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      socket.emit("call", { user: currentUser, offer });
+    };
+
+    socket.on("incoming_call", async data => {
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      document.getElementById("localAudio").srcObject = localStream;
+
+      peerConnection = new RTCPeerConnection(servers);
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+      peerConnection.onicecandidate = e => {
+        if (e.candidate) {
+          socket.emit("call", { user: currentUser, candidate: e.candidate });
+        }
+      };
+
+      peerConnection.ontrack = e => {
+        document.getElementById("remoteAudio").srcObject = e.streams[0];
+      };
+
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      socket.emit("accept_call", { user: currentUser, answer });
+    });
+
+    socket.on("call_accepted", async data => {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+    });
+
+    socket.on("call", async data => {
+      if (data.candidate) {
+        try {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+        } catch (e) {
+          console.error("Failed to add ICE candidate", e);
+        }
+      }
     });
   </script>
 </body>
