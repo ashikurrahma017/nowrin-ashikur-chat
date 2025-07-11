@@ -2,133 +2,339 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>Nowrin & Ashikur Chat</title>
   <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
   <style>
+    /* Reset and base */
+    * {
+      box-sizing: border-box;
+    }
     body {
       margin: 0; padding: 0;
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(to right top, #fbc2eb, #a6c1ee);
-      overflow-x: hidden; color: #fff;
+      overflow-x: hidden; 
+      color: #fff;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
     }
     #login, #chat {
       display: none;
-      margin: 60px auto;
-      padding: 30px;
-      max-width: 400px;
+      max-width: 420px;
+      width: 100%;
+      margin: 20px auto;
+      padding: 30px 25px;
       border-radius: 18px;
       background: rgba(250, 182, 212, 0.25);
       backdrop-filter: blur(12px);
-      text-align: center;
       box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      text-align: center;
     }
     #login { display: block; }
+    h2, h3 {
+      margin-bottom: 20px;
+      font-weight: 700;
+      text-shadow: 0 0 5px rgba(255,255,255,0.5);
+    }
+
+    /* Inputs and buttons base */
     input, button {
-      padding: 12px; margin: 10px 0;
       font-size: 16px;
-      border-radius: 10px;
-      border: none; color: black;
+      border-radius: 12px;
+      border: none;
+      outline: none;
+      font-weight: 600;
+      color: #111;
+      transition: box-shadow 0.3s ease;
+      font-family: 'Segoe UI', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    input::placeholder {
+      color: #666;
+    }
+    input:focus {
+      box-shadow: 0 0 10px #f06292;
+    }
+
+    /* Login specific */
+    #login input {
+      width: 100%;
+      padding: 14px 18px;
+      margin: 10px 0;
+      background: #fff;
+      box-shadow: inset 0 0 5px #ccc;
+    }
+    #login button {
+      width: 100%;
+      background: #f06292;
+      color: white;
+      padding: 14px 0;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(240, 98, 146, 0.6);
+    }
+    #login button:hover {
+      background: #ec407a;
+      box-shadow: 0 6px 20px rgba(236, 64, 122, 0.9);
+    }
+    #login-msg {
+      margin-top: 12px;
+      font-weight: 600;
+      color: pink;
+    }
+
+    /* Chat area */
+    #chat {
+      display: flex;
+      flex-direction: column;
+      height: 90vh;
+      max-height: 700px;
+    }
+    #welcome {
+      color: #fff;
+      margin-bottom: 10px;
+      font-size: 22px;
+      user-select: none;
     }
     #chat-box {
-      height: 350px; overflow-y: auto;
-      padding: 10px;
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.2);
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 15px 12px;
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.22);
       backdrop-filter: blur(10px);
+      color: #000;
+      font-size: 16px;
+      box-shadow: inset 0 0 10px #f06292aa;
+      scrollbar-width: thin;
+      scrollbar-color: #f06292 transparent;
+      margin-bottom: 12px;
     }
-    .message {
-      margin: 10px 0;
-      padding: 10px;
+    #chat-box::-webkit-scrollbar {
+      width: 8px;
+    }
+    #chat-box::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #chat-box::-webkit-scrollbar-thumb {
+      background-color: #f06292;
       border-radius: 10px;
-      clear: both;
-      max-width: 70%;
-      position: relative;
-      word-wrap: break-word;
     }
-    .me { float: right; background: #dcf8c6; color: #000; }
-    .other { float: left; background: #eee; color: #000; }
+
+    /* Messages */
+    .message {
+      max-width: 75%;
+      padding: 14px 20px 28px 20px;
+      margin: 10px 0;
+      border-radius: 20px;
+      position: relative;
+      font-size: 15px;
+      line-height: 1.4;
+      word-wrap: break-word;
+      box-shadow: 0 2px 10px rgb(0 0 0 / 0.1);
+      display: inline-block;
+      white-space: pre-wrap;
+      user-select: text;
+    }
+    .me {
+      background: #dcf8c6;
+      margin-left: auto;
+      border-bottom-right-radius: 5px;
+      box-shadow: 0 3px 12px rgb(0 0 0 / 0.2);
+      color: #000;
+    }
+    .other {
+      background: #fff;
+      margin-right: auto;
+      border-bottom-left-radius: 5px;
+      box-shadow: 0 3px 12px rgb(0 0 0 / 0.2);
+      color: #000;
+    }
     .meta {
-      font-size: 12px; color: #555;
+      position: absolute;
+      bottom: 6px;
+      right: 12px;
+      font-size: 12px;
+      color: #555;
       display: flex;
-      justify-content: flex-end;
-      align-items: center;
       gap: 6px;
-      margin-top: 6px;
+      align-items: center;
+      user-select: none;
     }
     .tick {
-      font-size: 14px; color: #4caf50;
+      font-size: 14px;
+      color: #4caf50;
+      line-height: 0;
     }
+
+    /* Send container */
     #send-container {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 6px;
+      gap: 10px;
+      padding-top: 5px;
     }
+
+    /* File attach (+) button */
     #file-label {
-      background: #fff3;
-      color: black;
+      background: linear-gradient(135deg, #f43f5e, #f06292);
+      color: white;
       border-radius: 50%;
-      width: 32px; height: 32px;
-      text-align: center; line-height: 32px;
-      font-size: 20px; cursor: pointer;
+      width: 42px;
+      height: 42px;
+      font-size: 28px;
+      line-height: 42px;
+      text-align: center;
+      cursor: pointer;
+      box-shadow: 0 6px 15px rgba(244, 63, 94, 0.8);
+      user-select: none;
+      transition: box-shadow 0.3s ease;
+      flex-shrink: 0;
+    }
+    #file-label:hover {
+      box-shadow: 0 8px 25px rgba(244, 63, 94, 1);
     }
     #file {
       display: none;
     }
+
+    /* Emoji button */
+    #emoji-btn {
+      background: linear-gradient(135deg, #f43f5e, #f06292);
+      border: none;
+      color: white;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      font-size: 26px;
+      line-height: 42px;
+      cursor: pointer;
+      box-shadow: 0 6px 15px rgba(244, 63, 94, 0.8);
+      user-select: none;
+      transition: box-shadow 0.3s ease;
+      flex-shrink: 0;
+    }
+    #emoji-btn:hover {
+      box-shadow: 0 8px 25px rgba(244, 63, 94, 1);
+    }
+
+    /* Text input */
     #msg {
       flex-grow: 1;
-      color: black;
-      padding: 10px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      font-size: 16px;
-    }
-    #send-btn {
-      width: 50px; height: 40px;
-      font-size: 20px;
-      background: #f06292;
-      color: white;
-      border-radius: 50%;
-      cursor: pointer;
-    }
-    #send-btn:hover {
-      background: #ec407a;
-    }
-    #emoji-btn {
-      background: none;
+      border-radius: 25px;
+      padding: 14px 20px;
+      font-size: 17px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       border: none;
+      outline: none;
+      box-shadow: inset 0 0 10px #f062927a;
+      color: #111;
+      user-select: text;
+      transition: box-shadow 0.3s ease;
+      min-height: 42px;
+      max-height: 100px;
+      resize: none;
+    }
+    #msg:focus {
+      box-shadow: inset 0 0 15px #f06292;
+    }
+
+    /* Send button */
+    #send-btn {
+      background: linear-gradient(135deg, #f43f5e, #f06292);
+      border-radius: 50%;
+      width: 46px;
+      height: 46px;
+      border: none;
+      color: white;
       font-size: 24px;
       cursor: pointer;
+      box-shadow: 0 6px 15px rgba(244, 63, 94, 0.8);
       user-select: none;
+      flex-shrink: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: box-shadow 0.3s ease, transform 0.2s ease;
     }
+    #send-btn:hover {
+      box-shadow: 0 8px 25px rgba(244, 63, 94, 1);
+      transform: scale(1.1);
+    }
+
+    /* Emoji picker */
     emoji-picker {
       position: absolute;
-      bottom: 80px;
-      right: 30px;
+      bottom: 70px;
+      right: 20px;
       z-index: 100;
       display: none;
+      box-shadow: 0 6px 20px rgba(240, 98, 146, 0.6);
+      border-radius: 20px;
     }
+
+    /* Typing status */
     #typing-status {
-      font-size: 13px;
-      margin-top: 5px;
-      color: #ffd;
+      font-size: 14px;
+      margin-bottom: 6px;
+      color: #ffe4e9;
       text-align: center;
       font-style: italic;
+      min-height: 20px;
+      user-select: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      #login, #chat {
+        max-width: 100%;
+        height: 100vh;
+        margin: 0 auto;
+        border-radius: 0;
+        padding: 20px 15px;
+        box-shadow: none;
+      }
+      #chat {
+        height: 100vh;
+      }
+      #chat-box {
+        font-size: 15px;
+        padding: 12px 8px;
+        margin-bottom: 10px;
+      }
+      .message {
+        max-width: 85%;
+        font-size: 14px;
+        padding: 12px 15px 25px 15px;
+      }
+      #file-label, #emoji-btn, #send-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 22px;
+        line-height: 38px;
+      }
+      #msg {
+        font-size: 16px;
+        min-height: 38px;
+      }
     }
   </style>
 </head>
 <body>
 
-<audio id="ping" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3"></audio>
+<audio id="ping" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" preload="auto"></audio>
 
 <div id="login">
   <h2>Nowrin... please login</h2>
-  <input id="username" placeholder="Username" />
-  <input id="password" type="password" placeholder="Password" />
+  <input id="username" placeholder="Username" autocomplete="off" />
+  <input id="password" type="password" placeholder="Password" autocomplete="off" />
   <button onclick="login()">Login</button>
-  <p id="login-msg" style="color: pink;"></p>
+  <p id="login-msg"></p>
 </div>
 
 <div id="chat">
@@ -136,11 +342,11 @@
   <div id="chat-box"></div>
   <div id="typing-status"></div>
   <div id="send-container">
-    <label for="file" id="file-label">+</label>
+    <label for="file" id="file-label" title="Attach Image or PDF">+</label>
     <input type="file" id="file" accept="image/*,application/pdf" />
-    <button id="emoji-btn">😊</button>
-    <input id="msg" placeholder="Type message..." />
-    <button id="send-btn" onclick="sendMsg()">➤</button>
+    <button id="emoji-btn" aria-label="Emoji picker">😊</button>
+    <textarea id="msg" placeholder="Type message..." rows="1"></textarea>
+    <button id="send-btn" onclick="sendMsg()" aria-label="Send message">➤</button>
     <emoji-picker id="emoji-picker"></emoji-picker>
   </div>
 </div>
@@ -151,11 +357,17 @@
   const msgInput = document.getElementById("msg");
   const typingStatus = document.getElementById("typing-status");
   const emojiPicker = document.getElementById("emoji-picker");
+  const pingSound = document.getElementById("ping");
+  const fileInput = document.getElementById("file");
 
-  // Login
+  // Login function
   function login() {
     const u = document.getElementById("username").value.trim();
     const p = document.getElementById("password").value.trim();
+    if (!u || !p) {
+      document.getElementById("login-msg").innerText = "Please enter username and password.";
+      return;
+    }
     fetch("/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -164,26 +376,25 @@
       if (data.success) {
         currentUser = u;
         document.getElementById("login").style.display = "none";
-        document.getElementById("chat").style.display = "block";
+        document.getElementById("chat").style.display = "flex";
         document.getElementById("welcome").innerText = `Welcome, ${u} ❤️`;
         data.history.forEach(displayMessage);
         socket.emit("seen", { user: currentUser });
+        msgInput.focus();
       } else {
         document.getElementById("login-msg").innerText = "Invalid login.";
       }
     });
   }
 
-  // Send
+  // Send message function
   function sendMsg() {
     const msg = msgInput.value.trim();
-    const fileInput = document.getElementById("file");
     const file = fileInput.files[0];
-    const reader = new FileReader();
-
     if (!msg && !file) return;
 
     if (file) {
+      const reader = new FileReader();
       reader.onload = () => {
         socket.emit("message", {
           user: currentUser,
@@ -196,75 +407,117 @@
     } else {
       socket.emit("message", { user: currentUser, msg });
     }
-
     msgInput.value = "";
     fileInput.value = "";
     emojiPicker.style.display = "none";
+    msgInput.style.height = "auto";
   }
 
-  // Display message
+  // Display message function
   function displayMessage(data) {
     const div = document.createElement("div");
     div.className = "message " + (data.user === currentUser ? "me" : "other");
 
-    if (data.msg) div.innerHTML += `<div>${data.msg}</div>`;
+    if (data.msg) div.innerHTML += `<div>${escapeHtml(data.msg)}</div>`;
 
     if (data.file && data.filename) {
-      if (data.filename.endsWith(".pdf")) {
-        div.innerHTML += `<a href="${data.file}" target="_blank">📄 View PDF</a>`;
+      if (data.filename.toLowerCase().endsWith(".pdf")) {
+        div.innerHTML += `<a href="${data.file}" target="_blank" rel="noopener noreferrer" style="color:#3b5998;">📄 View PDF</a>`;
       } else {
-        div.innerHTML += `<img src="${data.file}" style="max-width:200px; border-radius:10px;" />`;
+        div.innerHTML += `<img src="${data.file}" style="max-width:200px; border-radius:10px; margin-top:6px;" />`;
       }
     }
 
-    div.innerHTML += `<div class="meta">${data.time}<span class="tick">${data.user === currentUser ? (data.seen ? ' ✔✔' : ' ✔') : ''}</span></div>`;
-    document.getElementById("chat-box").appendChild(div);
-    document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
+    const seen = data.seen === true;
+
+    div.innerHTML += `
+      <div class="meta">
+        <span>${data.time || ""}</span>
+        <span class="tick">${data.user === currentUser ? (seen ? '✔✔' : '✔') : ''}</span>
+      </div>`;
+
+    const chatBox = document.getElementById("chat-box");
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    if (data.user !== currentUser) {
+      pingSound.play().catch(() => {});
+    }
   }
 
-  // Message receive
-  socket.on("message", (data) => {
-    displayMessage(data);
-    if (data.user !== currentUser) {
-      socket.emit("seen", { user: currentUser });
-      document.getElementById("ping").play();
-    }
-  });
+  // Escape HTML helper
+  function escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+  }
 
-  // Seen tick update
-  socket.on("update_seen", () => {
-    const messages = document.querySelectorAll(".message");
-    messages.forEach((div) => {
-      if (div.classList.contains("me")) {
-        const tick = div.querySelector(".tick");
-        if (tick) tick.innerText = "✔✔";
-      }
-    });
-  });
-
-  // Typing indicator
+  // Typing indicator throttling
+  let typingTimeout;
   msgInput.addEventListener("input", () => {
     socket.emit("typing", { user: currentUser });
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+      socket.emit("stop_typing", { user: currentUser });
+    }, 1500);
   });
 
   socket.on("typing", (data) => {
     if (data.user !== currentUser) {
       typingStatus.innerText = `${data.user} is typing...`;
       clearTimeout(window.typingTimeout);
-      window.typingTimeout = setTimeout(() => typingStatus.innerText = "", 2000);
+      window.typingTimeout = setTimeout(() => {
+        typingStatus.innerText = "";
+      }, 2000);
     }
   });
 
-  // Emoji Picker Toggle
-  document.getElementById("emoji-btn").addEventListener("click", () => {
-    emojiPicker.style.display = emojiPicker.style.display === "none" ? "block" : "none";
+  socket.on("stop_typing", (data) => {
+    if (data.user !== currentUser) {
+      typingStatus.innerText = "";
+    }
   });
 
-  // On emoji pick
+  // Update seen ticks
+  socket.on("update_seen", () => {
+    const messages = document.querySelectorAll(".message.me");
+    messages.forEach(div => {
+      const tick = div.querySelector(".tick");
+      if (tick) tick.innerText = "✔✔";
+    });
+  });
+
+  // Emoji Picker toggle
+  document.getElementById("emoji-btn").addEventListener("click", () => {
+    emojiPicker.style.display = emojiPicker.style.display === "block" ? "none" : "block";
+  });
+
+  // Insert emoji
   emojiPicker.addEventListener("emoji-click", event => {
     msgInput.value += event.detail.unicode;
     msgInput.focus();
+    emojiPicker.style.display = "none";
+  });
+
+  // Auto-expand textarea height
+  msgInput.addEventListener("input", () => {
+    msgInput.style.height = "auto";
+    msgInput.style.height = msgInput.scrollHeight + "px";
+  });
+
+  // Enter sends message (Shift+Enter new line)
+  msgInput.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMsg();
+    }
   });
 </script>
+
 </body>
 </html>
