@@ -1,46 +1,54 @@
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
-from flask_cors import CORS
-from datetime import datetime, timedelta
+from datetime import datetime
+import pytz
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'love-nowrin-ashikur'
-CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
+app = Flask(__name__, static_url_path='', static_folder='.')
+socketio = SocketIO(app)
 
-# Predefined users
 users = {
-    "Ashikur": "ashikur01788",
-    "Nowrin": "nowrin007"
+    "Nowrin": "nowrin007",
+    "Ashikur": "ashikur01788"
 }
 
-# In-memory message store
 message_history = []
+seen_by = set()
 
-@app.route("/")
+@app.route('/')
 def index():
-    return render_template("index.html")
+    return app.send_static_file('index.html')
 
-@app.route("/login", methods=["POST"])
+@app.route('/login', methods=['POST'])
 def login():
     data = request.json
     username = data.get("username")
     password = data.get("password")
-    
-    if username in users and users[username] == password:
+    if users.get(username) == password:
         return jsonify(success=True, history=message_history)
-    else:
-        return jsonify(success=False)
+    return jsonify(success=False)
 
 @socketio.on("message")
 def handle_message(data):
-    user = data["user"]
-    msg = data["msg"]
-    bd_time = datetime.utcnow() + timedelta(hours=6)
-    time_str = bd_time.strftime("%I:%M %p")
-    payload = {"user": user, "msg": msg, "time": time_str}
-    message_history.append(payload)
-    emit("message", payload, broadcast=True)
+    bd_time = datetime.now(pytz.timezone("Asia/Dhaka")).strftime("%I:%M %p")
+    message = {
+        "user": data["user"],
+        "msg": data.get("msg", ""),
+        "time": bd_time,
+        "seen": False
+    }
+    if "file" in data:
+        message["file"] = data["file"]
+        message["filename"] = data["filename"]
 
-if __name__ == "__main__":
+    message_history.append(message)
+    emit("message", message, broadcast=True)
+
+@socketio.on("seen")
+def update_seen(data):
+    for msg in message_history:
+        if msg["user"] != data["user"]:
+            msg["seen"] = True
+    emit("update_seen", list(range(len(message_history))), broadcast=True)
+
+if __name__ == '__main__':
     socketio.run(app, host="0.0.0.0", port=5000)
