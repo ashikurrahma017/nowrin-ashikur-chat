@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -77,6 +77,8 @@
       border-radius: 10px;
       background: rgba(255, 255, 255, 0.2);
       backdrop-filter: blur(10px);
+      color: black;
+      font-size: 15px;
     }
     .message {
       margin: 10px 0;
@@ -85,20 +87,30 @@
       clear: both;
       max-width: 70%;
       position: relative;
+      word-wrap: break-word;
     }
-    .me { float: right; background: #dcf8c6; color: #000; }
-    .other { float: left; background: #eee; color: #000; }
+    .me { 
+      float: right; 
+      background: #dcf8c6; 
+      color: #000; 
+    }
+    .other { 
+      float: left; 
+      background: #eee; 
+      color: #000; 
+    }
     .meta {
       font-size: 12px;
       color: #666;
       display: flex;
       justify-content: flex-end;
       align-items: center;
-      gap: 4px;
-      margin-top: 4px;
+      gap: 6px;
+      margin-top: 6px;
     }
     .tick {
       font-size: 14px;
+      color: #4caf50;
     }
     #send-container {
       display: flex;
@@ -115,11 +127,52 @@
       height: 32px;
       text-align: center;
       line-height: 32px;
-      font-size: 20px;
+      font-size: 26px;
       cursor: pointer;
+      user-select: none;
     }
     #file {
       display: none;
+    }
+    #msg {
+      flex-grow: 1;
+      color: black;
+      border-radius: 10px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 16px;
+      border: 1px solid #ccc;
+    }
+    button {
+      width: 70px;
+      background-color: #f06292;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #ec407a;
+    }
+    @media(max-width: 480px) {
+      #login, #chat {
+        width: 90%;
+        margin: 40px auto;
+        padding: 20px;
+      }
+      #chat-box {
+        height: 250px;
+      }
+      #file-label {
+        width: 28px;
+        height: 28px;
+        font-size: 22px;
+        line-height: 28px;
+      }
+      button {
+        width: 60px;
+        font-size: 14px;
+      }
     }
   </style>
 </head>
@@ -130,8 +183,8 @@
 
   <div id="login">
     <h2>Nowrin... please login</h2>
-    <input id="username" placeholder="Username" />
-    <input id="password" type="password" placeholder="Password" />
+    <input id="username" placeholder="Username" autocomplete="off" />
+    <input id="password" type="password" placeholder="Password" autocomplete="off" />
     <button onclick="login()">Login</button>
     <p id="login-msg" style="color: pink;"></p>
   </div>
@@ -142,7 +195,7 @@
     <div id="send-container">
       <label for="file" id="file-label">+</label>
       <input type="file" id="file" accept="image/*,application/pdf" />
-      <input id="msg" placeholder="Type message..." style="color: black;" />
+      <input id="msg" placeholder="Type message..." />
       <button onclick="sendMsg()">Send</button>
     </div>
   </div>
@@ -154,6 +207,10 @@
     function login() {
       const u = document.getElementById("username").value.trim();
       const p = document.getElementById("password").value.trim();
+      if (!u || !p) {
+        document.getElementById("login-msg").innerText = "Please enter username and password.";
+        return;
+      }
       fetch("/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -178,6 +235,8 @@
       const file = fileInput.files[0];
       const reader = new FileReader();
 
+      if (!msg && !file) return;  // Prevent sending empty message
+
       if (file) {
         reader.onload = () => {
           socket.emit("message", {
@@ -200,13 +259,13 @@
       const div = document.createElement("div");
       div.className = "message " + (data.user === currentUser ? "me" : "other");
 
-      if (data.msg) div.innerHTML += `<div>${data.msg}</div>`;
+      if (data.msg) div.innerHTML += `<div>${escapeHtml(data.msg)}</div>`;
 
       if (data.file && data.filename) {
-        if (data.filename.endsWith(".pdf")) {
-          div.innerHTML += `<a href="${data.file}" target="_blank">📄 View PDF</a>`;
+        if (data.filename.toLowerCase().endsWith(".pdf")) {
+          div.innerHTML += `<a href="${data.file}" target="_blank" rel="noopener noreferrer" style="color:#3b5998;">📄 View PDF</a>`;
         } else {
-          div.innerHTML += `<img src="${data.file}" style="max-width:200px; border-radius:10px;" />`;
+          div.innerHTML += `<img src="${data.file}" style="max-width:200px; border-radius:10px; margin-top:6px;" />`;
         }
       }
 
@@ -214,6 +273,18 @@
 
       document.getElementById("chat-box").appendChild(div);
       document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
+    }
+
+    // Prevent XSS by escaping HTML in message
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, m => map[m]);
     }
 
     socket.on("message", (data) => {
@@ -224,12 +295,10 @@
     });
 
     socket.on("update_seen", () => {
-      const messages = document.querySelectorAll(".message");
+      const messages = document.querySelectorAll(".message.me");
       messages.forEach((div) => {
-        if (div.classList.contains("me")) {
-          const tick = div.querySelector(".tick");
-          if (tick) tick.innerText = "✔✔";
-        }
+        const tick = div.querySelector(".tick");
+        if (tick) tick.innerText = "✔✔";
       });
     });
   </script>
