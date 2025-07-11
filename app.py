@@ -52,5 +52,10 @@ def handle_seen(data):
             msg["seen"] = True
     emit("update_seen", list(range(len(message_history))), broadcast=True)
 
+# ✅ New: Handle typing indicator
+@socketio.on("typing")
+def handle_typing(data):
+    emit("typing", data, broadcast=True)
+
 if __name__ == '__main__':
     socketio.run(app, host="0.0.0.0", port=5000)
