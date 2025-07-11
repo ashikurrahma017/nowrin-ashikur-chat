@@ -6,7 +6,6 @@
   <title>Nowrin & Ashikur Chat</title>
   <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
   <style>
-    /* Reset and base */
     * {
       box-sizing: border-box;
     }
@@ -94,7 +93,6 @@
       box-shadow: 0 6px 20px rgba(236, 64, 122, 0.9);
     }
 
-    /* Send arrow icon */
     button svg {
       width: 24px;
       height: 24px;
@@ -115,7 +113,6 @@
       scrollbar-width: thin;
       scrollbar-color: #f06292 transparent;
     }
-    /* Custom scrollbar for WebKit */
     #chat-box::-webkit-scrollbar {
       width: 8px;
     }
@@ -129,7 +126,7 @@
 
     .message {
       max-width: 75%;
-      padding: 12px 15px;
+      padding: 12px 15px 20px 15px; /* add bottom padding for meta */
       margin: 8px 0;
       border-radius: 20px;
       word-wrap: break-word;
@@ -137,6 +134,9 @@
       font-size: 15px;
       line-height: 1.3;
       box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+      display: inline-block;
+      word-break: break-word;
+      white-space: pre-wrap;
     }
 
     .me {
@@ -156,7 +156,9 @@
     }
 
     .meta {
-      margin-top: 6px;
+      position: absolute;
+      bottom: 6px;
+      right: 10px;
       font-size: 11px;
       color: #555;
       display: flex;
@@ -170,6 +172,7 @@
       font-size: 14px;
       color: #4caf50;
       line-height: 0;
+      user-select: none;
     }
 
     #send-container {
@@ -272,7 +275,6 @@
       <input type="file" id="file" accept="image/*,application/pdf" />
       <input id="msg" placeholder="Type message..." autocomplete="off" />
       <button id="send-btn" aria-label="Send message">
-        <!-- WhatsApp-style send arrow -->
         <svg viewBox="0 0 24 24">
           <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
         </svg>
@@ -280,7 +282,6 @@
     </div>
   </div>
 
-  <!-- Message received sound -->
   <audio id="msg-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
   <script>
@@ -293,7 +294,6 @@
     const sendBtn = document.getElementById("send-btn");
     const fileInput = document.getElementById("file");
 
-    // Login function
     function login() {
       const u = document.getElementById("username").value.trim();
       const p = document.getElementById("password").value.trim();
@@ -320,7 +320,6 @@
       });
     }
 
-    // Send message function
     function sendMsg() {
       const msg = msgInput.value.trim();
       const file = fileInput.files[0];
@@ -346,7 +345,6 @@
       msgInput.focus();
     }
 
-    // Display message in chat box
     function displayMessage(data) {
       const div = document.createElement("div");
       div.className = "message " + (data.user === currentUser ? "me" : "other");
@@ -363,23 +361,23 @@
         }
       }
 
-      // Time and ticks side by side
+      // Ensure 'seen' defaults to false if undefined
+      const seen = data.seen === true;
+
       div.innerHTML += `
         <div class="meta">
-          <span>${data.time}</span>
-          <span class="tick">${data.user === currentUser ? (data.seen ? '✔✔' : '✔') : ''}</span>
+          <span>${data.time || ""}</span>
+          <span class="tick">${data.user === currentUser ? (seen ? '✔✔' : '✔') : ''}</span>
         </div>`;
 
       chatBox.appendChild(div);
       chatBox.scrollTop = chatBox.scrollHeight;
 
-      // Play sound only if the message is from other user
       if (data.user !== currentUser) {
-        msgSound.play().catch(() => {}); // ignore play error
+        msgSound.play().catch(() => {});
       }
     }
 
-    // Escape HTML to prevent XSS
     function escapeHtml(text) {
       const map = {
         '&': '&amp;',
@@ -391,7 +389,6 @@
       return text.replace(/[&<>"']/g, m => map[m]);
     }
 
-    // Event listeners
     sendBtn.addEventListener("click", sendMsg);
     msgInput.addEventListener("keydown", e => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -400,7 +397,6 @@
       }
     });
 
-    // Socket events
     socket.on("message", (data) => {
       displayMessage(data);
       if (data.user !== currentUser) {
