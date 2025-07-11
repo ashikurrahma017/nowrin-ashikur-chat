@@ -71,5 +71,9 @@ def handle_call(data):
 def handle_accept_call(data):
     emit("call_accepted", data, broadcast=True, include_self=False)
 
+@socketio.on("ring")
+def handle_ring(data):
+    emit("ringing", data, broadcast=True, include_self=False)
+
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=10000)
