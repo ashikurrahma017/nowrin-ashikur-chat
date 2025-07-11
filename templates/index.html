@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nowrin & Ashikur Chat</title>
   <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
   <style>
@@ -26,7 +26,6 @@
       text-align: center;
       box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     }
-
     #login { display: block; }
 
     input, button {
@@ -49,42 +48,61 @@
     }
 
     .message {
-      margin: 10px 0;
-      padding: 10px;
-      border-radius: 10px;
-      clear: both;
-      max-width: 70%;
       position: relative;
+      margin: 10px 0;
+      padding: 10px 10px 20px 10px;
+      max-width: 75%;
+      border-radius: 8px;
+      clear: both;
       word-wrap: break-word;
+      font-size: 15px;
     }
 
     .me {
       float: right;
-      background: #dcf8c6;
+      background-color: #dcf8c6;
       color: #000;
+      border-bottom-right-radius: 0;
     }
 
     .other {
       float: left;
-      background: #eee;
+      background-color: #fff;
       color: #000;
+      border-bottom-left-radius: 0;
     }
 
     .meta {
-      display: inline-flex;
-      align-items: center;
-      justify-content: flex-end;
+      position: absolute;
+      bottom: 4px;
+      right: 8px;
       font-size: 12px;
-      color: #666;
+      display: flex;
+      align-items: center;
       gap: 4px;
-      margin-top: 6px;
-      float: right;
-      white-space: nowrap;
+      color: #888;
     }
 
     .tick {
-      font-size: 13px;
-      color: #34b7f1; /* WhatsApp-style tick color */
+      font-size: 14px;
+    }
+
+    .tick-seen {
+      color: #34b7f1;
+    }
+
+    img {
+      margin-top: 6px;
+      border-radius: 10px;
+      max-width: 200px;
+    }
+
+    a {
+      display: inline-block;
+      margin-top: 6px;
+      color: #3b5998;
+      font-weight: bold;
+      text-decoration: none;
     }
 
     #send-container {
@@ -116,48 +134,19 @@
       color: black;
       border-radius: 10px;
       padding: 10px;
-      font-family: monospace;
       font-size: 16px;
       border: 1px solid #ccc;
     }
 
-    button {
-      width: 50px;
+    #send-button {
+      width: 48px;
+      height: 48px;
       background-color: #25d366;
       color: white;
-      font-weight: bold;
+      border: none;
+      border-radius: 50%;
+      font-size: 22px;
       cursor: pointer;
-      transition: background-color 0.3s ease;
-      font-size: 18px;
-      padding: 10px 0;
-    }
-
-    button:hover {
-      background-color: #128c7e;
-    }
-
-    @media(max-width: 480px) {
-      #login, #chat {
-        width: 90%;
-        margin: 40px auto;
-        padding: 20px;
-      }
-
-      #chat-box {
-        height: 250px;
-      }
-
-      #file-label {
-        width: 28px;
-        height: 28px;
-        font-size: 22px;
-        line-height: 28px;
-      }
-
-      button {
-        width: 44px;
-        font-size: 16px;
-      }
     }
   </style>
 </head>
@@ -177,12 +166,10 @@
     <div id="send-container">
       <label for="file" id="file-label">+</label>
       <input type="file" id="file" accept="image/*,application/pdf" />
-      <input id="msg" placeholder="Type message... 😊" />
-      <button onclick="sendMsg()">➤</button>
+      <input id="msg" placeholder="Type message..." />
+      <button id="send-button" onclick="sendMsg()">➤</button>
     </div>
   </div>
-
-  <audio id="receiveSound" src="https://notificationsounds.com/storage/sounds/file-sounds-1151-pristine.mp3" preload="auto"></audio>
 
   <script>
     const socket = io();
@@ -235,42 +222,36 @@
       fileInput.value = "";
     }
 
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
     function displayMessage(data) {
       const div = document.createElement("div");
-      div.className = "message " + (data.user === currentUser ? "me" : "other");
+      const isMe = data.user === currentUser;
+      div.className = "message " + (isMe ? "me" : "other");
 
       if (data.msg) div.innerHTML += `<div>${escapeHtml(data.msg)}</div>`;
 
       if (data.file && data.filename) {
         if (data.filename.toLowerCase().endsWith(".pdf")) {
-          div.innerHTML += `<a href="${data.file}" target="_blank" rel="noopener noreferrer" style="color:#3b5998;">📄 View PDF</a>`;
+          div.innerHTML += `<a href="${data.file}" target="_blank">📄 View PDF</a>`;
         } else {
-          div.innerHTML += `<img src="${data.file}" style="max-width:200px; border-radius:10px; margin-top:6px;" />`;
+          div.innerHTML += `<img src="${data.file}" />`;
         }
       }
 
-      const meta = document.createElement("div");
-      meta.className = "meta";
-      meta.innerHTML = `${data.time} <span class="tick">${data.user === currentUser ? (data.seen ? '✔✔' : '✔') : ''}</span>`;
-      div.appendChild(meta);
+      let tickHTML = "";
+      if (isMe) {
+        tickHTML = `<span class="tick ${data.seen ? 'tick-seen' : ''}">${data.seen ? '✔✔' : '✔'}</span>`;
+      }
 
+      div.innerHTML += `<div class="meta">${data.time} ${tickHTML}</div>`;
       document.getElementById("chat-box").appendChild(div);
       document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
-
-      if (data.user !== currentUser) {
-        document.getElementById("receiveSound")?.play();
-      }
-    }
-
-    function escapeHtml(text) {
-      const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-      };
-      return text.replace(/[&<>"']/g, m => map[m]);
     }
 
     socket.on("message", (data) => {
@@ -281,11 +262,8 @@
     });
 
     socket.on("update_seen", () => {
-      const messages = document.querySelectorAll(".message.me");
-      messages.forEach((div) => {
-        const tick = div.querySelector(".tick");
-        if (tick) tick.innerText = "✔✔";
-      });
+      const messages = document.querySelectorAll(".message.me .tick");
+      messages.forEach(tick => tick.innerText = "✔✔" && tick.classList.add("tick-seen"));
     });
   </script>
 </body>
