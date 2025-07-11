@@ -4,7 +4,7 @@ from datetime import datetime
 import pytz
 
 app = Flask(__name__)
-socketio = SocketIO(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Hardcoded users
 users = {
@@ -47,15 +47,11 @@ def handle_message(data):
 
 @socketio.on("seen")
 def handle_seen(data):
+    # Mark all messages NOT sent by current user as seen
     for msg in message_history:
         if msg["user"] != data["user"]:
             msg["seen"] = True
-    emit("update_seen", list(range(len(message_history))), broadcast=True)
-
-# ✅ New: Handle typing indicator
-@socketio.on("typing")
-def handle_typing(data):
-    emit("typing", data, broadcast=True)
+    emit("update_seen", broadcast=True)
 
 if __name__ == '__main__':
     socketio.run(app, host="0.0.0.0", port=5000)
