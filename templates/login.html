@@ -1,13 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Login | Whats chat{% endblock %}
+{% block title %}Login | WhatsChat{% endblock %}
 
 {% block content %}
 <div class="auth-container">
     <div class="auth-card">
-
-        <h1 class="app-title">Whats chat by ashikur</h1>
-        <p class="powered-by">Powered by Ashikur Rahman</p>
-
+        <h1 class="app-title">WhatsChat</h1>
         <h2 class="auth-title">Login</h2>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -20,7 +17,8 @@
             {% endif %}
         {% endwith %}
 
-        <form method="POST">
+        <!-- IMPORTANT: same class="auth-form" as register -->
+        <form method="POST" class="auth-form">
             <label>Username
                 <input name="username" required>
             </label>
@@ -32,7 +30,9 @@
             <button class="btn-primary">Login</button>
         </form>
 
-        <p class="auth-switch">New user? <a href="{{ url_for('register') }}">Register</a></p>
+        <p class="auth-switch">
+            New user? <a href="{{ url_for('register') }}">Register</a>
+        </p>
     </div>
 </div>
 {% endblock %}
