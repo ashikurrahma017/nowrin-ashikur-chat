@@ -2,27 +2,37 @@
 {% block title %}Chat | WhatsChat{% endblock %}
 
 {% block content %}
-<div class="whatsapp-layout" data-username="{{ username }}">
-    <!-- LEFT SIDEBAR -->
+<div class="whatsapp-layout"
+     data-current="{{ current_username }}"
+     data-active="{{ active_username or '' }}">
+
+    <!-- LEFT SIDEBAR: USERS LIST -->
     <aside class="sidebar">
         <header class="sidebar-header">
-            <div class="profile-circle">{{ username[0]|upper }}</div>
-            <span class="sidebar-username">{{ username }}</span>
+            <div class="profile-circle">{{ current_username[0]|upper }}</div>
+            <span class="sidebar-username">{{ current_username }}</span>
             <a class="logout-link" href="{{ url_for('logout') }}">Logout</a>
         </header>
 
         <div class="sidebar-search">
-            <input type="text" placeholder="Search or start a new chat" disabled>
+            <input id="user-search" type="text"
+                   placeholder="Search username">
         </div>
 
-        <div class="chat-list">
-            <div class="chat-list-item active">
-                <div class="chat-avatar">{{ username[0]|upper }}</div>
-                <div class="chat-info">
-                    <div class="chat-title">Global Room</div>
-                    <div class="chat-last">All users share this room</div>
-                </div>
+        <div class="chat-list" id="user-list">
+            {% for u in users %}
+            <div class="chat-list-item {% if active_username == u['username'] %}active{% endif %}">
+                <a class="chat-list-link" href="{{ url_for('chat', username=u['username']) }}">
+                    <div class="chat-avatar">{{ u['username'][0]|upper }}</div>
+                    <div class="chat-info">
+                        <div class="chat-title username-text">{{ u['username'] }}</div>
+                        <div class="chat-last">
+                            Tap to chat
+                        </div>
+                    </div>
+                </a>
             </div>
+            {% endfor %}
         </div>
     </aside>
 
@@ -30,22 +40,39 @@
     <main class="chat-main">
         <header class="chat-header">
             <div class="chat-header-info">
-                <div class="chat-avatar">{{ username[0]|upper }}</div>
-                <div>
-                    <div class="chat-title">Global Room</div>
-                    <div class="chat-subtitle">Messages are stored securely</div>
-                </div>
+                {% if active_username %}
+                    <div class="chat-avatar">{{ active_username[0]|upper }}</div>
+                    <div>
+                        <div class="chat-title">{{ active_username }}</div>
+                        <div class="chat-subtitle">Personal chat</div>
+                    </div>
+                {% else %}
+                    <div>
+                        <div class="chat-title">Select a person</div>
+                        <div class="chat-subtitle">Choose a user from the left to start chatting</div>
+                    </div>
+                {% endif %}
             </div>
         </header>
 
-        <section class="chat-body" id="messages"></section>
+        <section class="chat-body" id="messages">
+            {% if not active_username %}
+            <div class="empty-state">
+                <p>Select a user from the list to start a personal chat.</p>
+            </div>
+            {% endif %}
+        </section>
 
         <footer class="chat-footer">
             <form id="message-form">
                 <div class="input-wrapper">
-                    <input id="message-input" type="text" placeholder="Type a message" autocomplete="off">
+                    <input id="message-input" type="text"
+                           placeholder="{% if active_username %}Type a message{% else %}Select a user first{% endif %}"
+                           autocomplete="off"
+                           {% if not active_username %}disabled{% endif %}>
                 </div>
-                <button type="submit" class="send-button">➤</button>
+                <button type="submit" class="send-button"
+                        {% if not active_username %}disabled{% endif %}>➤</button>
             </form>
         </footer>
     </main>
