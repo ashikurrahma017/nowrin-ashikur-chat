@@ -1,79 +1,185 @@
-from flask import Flask, render_template, request, jsonify
-from flask_socketio import SocketIO, emit
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
+from werkzeug.security import generate_password_hash, check_password_hash
+import sqlite3
 from datetime import datetime
-import pytz
 import os
-import json
 
-app = Flask(__name__, template_folder="templates")
-socketio = SocketIO(app)
+app = Flask(__name__)
+app.secret_key = "change_this_to_a_very_secret_random_key"  # IMPORTANT: change in production
+DB_PATH = "chat.db"
 
-DATA_FILE = "messages.json"
 
-# Load saved messages
-def load_messages():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
-            return json.load(f)
-    return []
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
-# Save messages
-def save_messages():
-    with open(DATA_FILE, "w") as f:
-        json.dump(messages, f)
 
-messages = load_messages()
-seen_users = set()
+def init_db():
+    if not os.path.exists(DB_PATH):
+        conn = get_db()
+        cur = conn.cursor()
+
+        # Users table
+        cur.execute("""
+        CREATE TABLE users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        """)
+
+        # Messages table
+        cur.execute("""
+        CREATE TABLE messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            username TEXT NOT NULL,
+            text TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        """)
+
+        conn.commit()
+        conn.close()
+
+
+@app.before_first_request
+def setup():
+    init_db()
+
+
+def login_required(view_func):
+    from functools import wraps
+
+    @wraps(view_func)
+    def wrapped(*args, **kwargs):
+        if "user_id" not in session:
+            return redirect(url_for("login"))
+        return view_func(*args, **kwargs)
+
+    return wrapped
+
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    if "user_id" in session:
+        return redirect(url_for("chat"))
+    return redirect(url_for("login"))
 
-@app.route("/login", methods=["POST"])
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+
+        if not username or not password:
+            flash("Username and password are required.", "error")
+            return redirect(url_for("register"))
+
+        conn = get_db()
+        cur = conn.cursor()
+
+        try:
+            cur.execute(
+                "INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)",
+                (username, generate_password_hash(password), datetime.utcnow().isoformat())
+            )
+            conn.commit()
+        except sqlite3.IntegrityError:
+            flash("Username already taken. Choose another.", "error")
+            conn.close()
+            return redirect(url_for("register"))
+
+        conn.close()
+        flash("Registration successful. Please log in.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("register.html")
+
+
+@app.route("/login", methods=["GET", "POST"])
 def login():
-    data = request.get_json()
-    username = data.get("username")
-    password = data.get("password")
-    if username and password:
-        return jsonify({"success": True, "history": messages})
-    return jsonify({"success": False})
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
 
-@socketio.on("message")
-def handle_message(data):
-    tz = pytz.timezone("Asia/Dhaka")
-    now = datetime.now(tz).strftime("%I:%M %p")
-    message = {
-        "user": data["user"],
-        "msg": data.get("msg"),
-        "time": now,
-        "seen": False,
-        "file": data.get("file"),
-        "filename": data.get("filename")
-    }
-    messages.append(message)
-    save_messages()
-    emit("message", message, broadcast=True)
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT id, username, password_hash FROM users WHERE username = ?", (username,))
+        user = cur.fetchone()
+        conn.close()
 
-@socketio.on("seen")
-def handle_seen(data):
-    seen_users.add(data["user"])
-    for msg in messages:
-        if msg["user"] != data["user"]:
-            msg["seen"] = True
-    save_messages()
-    emit("update_seen", broadcast=True)
+        if user and check_password_hash(user["password_hash"], password):
+            session["user_id"] = user["id"]
+            session["username"] = user["username"]
+            return redirect(url_for("chat"))
+        else:
+            flash("Invalid username or password.", "error")
+            return redirect(url_for("login"))
 
-@socketio.on("call")
-def handle_call(data):
-    emit("incoming_call", data, broadcast=True, include_self=False)
+    return render_template("login.html")
 
-@socketio.on("accept_call")
-def handle_accept_call(data):
-    emit("call_accepted", data, broadcast=True, include_self=False)
 
-@socketio.on("ring")
-def handle_ring(data):
-    emit("ringing", data, broadcast=True, include_self=False)
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
+@app.route("/chat")
+@login_required
+def chat():
+    return render_template("chat.html", username=session.get("username"))
+
+
+@app.route("/messages", methods=["GET", "POST"])
+@login_required
+def messages():
+    if request.method == "POST":
+        data = request.get_json() or {}
+        text = (data.get("text") or "").strip()
+
+        if not text:
+            return jsonify({"error": "Empty message"}), 400
+
+        user_id = session["user_id"]
+        username = session["username"]
+        created_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
+
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO messages (user_id, username, text, created_at) VALUES (?, ?, ?, ?)",
+            (user_id, username, text, created_at),
+        )
+        conn.commit()
+        conn.close()
+
+        return jsonify({"status": "ok"})
+
+    # GET -> return all messages (or last N)
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, username, text, created_at FROM messages ORDER BY id ASC")
+    rows = cur.fetchall()
+    conn.close()
+
+    messages_list = [
+        {
+            "id": row["id"],
+            "username": row["username"],
+            "text": row["text"],
+            "created_at": row["created_at"],
+        }
+        for row in rows
+    ]
+
+    return jsonify(messages_list)
+
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=10000)
+    app.run(debug=True)
