@@ -1,4 +1,6 @@
-/* RESET */
+/* ------------------------------------------------------ */
+/* RESET + GLOBAL */
+/* ------------------------------------------------------ */
 * {
     margin: 0;
     padding: 0;
@@ -6,11 +8,12 @@
 }
 
 body {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: #111b21;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #0a1014;
     color: #e9edef;
 }
 
+/* Wrapper for all pages */
 .app-wrapper {
     min-height: 100vh;
     display: flex;
@@ -18,7 +21,9 @@ body {
     justify-content: center;
 }
 
-/* AUTH PAGES */
+/* ------------------------------------------------------ */
+/* AUTH PAGE (LOGIN + REGISTER) */
+/* ------------------------------------------------------ */
 
 .auth-container {
     width: 100%;
@@ -27,73 +32,92 @@ body {
 }
 
 .auth-card {
-    background: #202c33;
-    border-radius: 12px;
-    padding: 2rem 2.5rem;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    background: #1c2a2e;
+    padding: 2.5rem;
+    border-radius: 18px;
+    box-shadow: 0 15px 55px rgba(0, 0, 0, 0.45);
+    border: 1px solid #223338;
+    animation: fadeIn 0.4s ease-out;
 }
 
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Branding */
 .app-title {
-    font-size: 1.4rem;
-    letter-spacing: 0.08em;
-    color: #25d366;
+    font-size: 1.7rem;
+    font-weight: 700;
     text-align: center;
-    margin-bottom: 0.3rem;
+    letter-spacing: 0.05rem;
+    margin-bottom: 0.4rem;
+    color: #25d366;
 }
 
 .powered-by {
     text-align: center;
-    font-size: 0.8rem;
-    color: #8696a0;
-    margin-bottom: 0.8rem;
+    margin-bottom: 1.6rem;
+    font-size: 0.85rem;
+    color: #8ca3ae;
 }
 
+/* Login/Register box title */
 .auth-title {
     text-align: center;
-    font-size: 1.1rem;
-    margin-bottom: 1.5rem;
-    color: #e9edef;
+    font-size: 1.25rem;
+    margin-bottom: 1.6rem;
+    font-weight: 600;
 }
 
+/* Floating label input fields */
 .auth-form label {
     display: block;
+    position: relative;
+    margin-bottom: 1.4rem;
     font-size: 0.9rem;
-    margin-bottom: 0.8rem;
+    color: #b8c7cc;
 }
 
 .auth-form input {
     width: 100%;
-    background: #111b21;
-    border: 1px solid #36454f;
-    border-radius: 8px;
-    padding: 0.6rem 0.8rem;
-    margin-top: 0.3rem;
+    background: #0d1418;
+    border: 1px solid #2e3f44;
+    border-radius: 10px;
+    padding: 0.9rem 0.9rem;
+    font-size: 1rem;
     color: #e9edef;
+    transition: all 0.2s ease;
 }
 
 .auth-form input:focus {
     outline: none;
     border-color: #25d366;
+    box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.3);
 }
 
+/* Submit button */
 .btn-primary {
     width: 100%;
-    margin-top: 1.1rem;
-    padding: 0.7rem;
-    border-radius: 999px;
+    padding: 0.9rem;
+    border-radius: 10px;
     border: none;
     background: #25d366;
-    color: #111b21;
-    font-weight: 600;
+    color: #0d1418;
+    font-size: 1.05rem;
+    font-weight: 700;
     cursor: pointer;
+    transition: 0.15s ease;
 }
 
 .btn-primary:hover {
-    filter: brightness(1.05);
+    filter: brightness(1.15);
+    transform: translateY(-1px);
 }
 
+/* “Switch to login/register” */
 .auth-switch {
-    margin-top: 1rem;
+    margin-top: 1.4rem;
     text-align: center;
     font-size: 0.9rem;
 }
@@ -101,86 +125,95 @@ body {
 .auth-switch a {
     color: #25d366;
     text-decoration: none;
+    font-weight: 600;
 }
 
-/* FLASH MESSAGES */
+.auth-switch a:hover {
+    text-decoration: underline;
+}
 
+/* Flash messages */
 .flash-container {
     margin-bottom: 1rem;
 }
 
 .flash {
-    padding: 0.5rem 0.7rem;
-    border-radius: 6px;
+    padding: 0.6rem 0.8rem;
+    margin-bottom: 0.4rem;
+    border-radius: 8px;
     font-size: 0.85rem;
-    margin-bottom: 0.3rem;
 }
 
 .flash.error {
     background: #3b1414;
-    color: #ffb3b3;
+    color: #ffa9a9;
 }
 
 .flash.success {
-    background: #12351f;
-    color: #b7ffcf;
+    background: #11351d;
+    color: #b6ffd0;
 }
 
-/* MAIN WHATSAPP-LIKE LAYOUT */
+/* ------------------------------------------------------ */
+/* MAIN CHAT LAYOUT */
+/* ------------------------------------------------------ */
 
 .whatsapp-layout {
     width: 100%;
     height: 100vh;
-    max-width: 1200px;
-    max-height: 720px;
+    max-width: 1250px;
+    max-height: 780px;
     margin: 1rem;
     display: flex;
-    background: #111b21;
-    border-radius: 8px;
+    background: #0b141a;
+    border-radius: 12px;
     overflow: hidden;
-    border: 1px solid #202c33;
+    border: 1px solid #1f2c33;
 }
 
+/* ------------------------------------------------------ */
 /* SIDEBAR */
+/* ------------------------------------------------------ */
 
 .sidebar {
     width: 30%;
     min-width: 260px;
     background: #111b21;
-    border-right: 1px solid #202c33;
+    border-right: 1px solid #1f2c33;
     display: flex;
     flex-direction: column;
 }
 
 .sidebar-header {
+    padding: 0.8rem 1rem;
+    background: #202c33;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.7rem 0.9rem;
-    background: #202c33;
 }
 
-.profile-circle,
-.chat-avatar {
-    width: 36px;
-    height: 36px;
+.profile-circle {
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    background: #008069;
+    background: #00a884;
+    color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 1rem;
 }
 
 .sidebar-username {
     flex: 1;
-    margin-left: 0.5rem;
-    font-size: 0.95rem;
+    margin-left: 0.7rem;
+    font-size: 1rem;
 }
 
 .logout-link {
-    font-size: 0.8rem;
     color: #d1d7db;
+    font-size: 0.85rem;
     text-decoration: none;
 }
 
@@ -188,70 +221,29 @@ body {
     text-decoration: underline;
 }
 
+/* Search bar */
 .sidebar-search {
-    padding: 0.4rem 0.6rem;
+    padding: 0.5rem 0.8rem;
     background: #111b21;
 }
 
 .sidebar-search input {
     width: 100%;
-    padding: 0.4rem 0.6rem;
+    padding: 0.55rem 0.9rem;
     border-radius: 999px;
     border: none;
-    background: #202c33;
-    color: #8696a0;
-    font-size: 0.85rem;
+    background: #1f2c33;
+    color: #ccd3d8;
+    font-size: 0.9rem;
 }
 
-.chat-list {
-    flex: 1;
-    overflow-y: auto;
+.sidebar-search input:focus {
+    outline: none;
 }
 
-.chat-list.empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: left;
-    padding: 0.8rem;
-}
-
-.chat-list-item {
-    display: flex;
-    padding: 0.6rem 0.8rem;
-    cursor: pointer;
-}
-
-.chat-list-link {
-    display: flex;
-    text-decoration: none;
-    color: inherit;
-    width: 100%;
-}
-
-.chat-list-item.active {
-    background: #202c33;
-}
-
-.chat-list-item:hover {
-    background: #202c33;
-}
-
-.chat-info {
-    margin-left: 0.6rem;
-}
-
-.chat-title {
-    font-size: 0.95rem;
-    margin-bottom: 0.1rem;
-}
-
-.chat-last {
-    font-size: 0.8rem;
-    color: #8696a0;
-}
-
-/* MAIN CHAT */
+/* ------------------------------------------------------ */
+/* CHAT AREA */
+/* ------------------------------------------------------ */
 
 .chat-main {
     flex: 1;
@@ -261,16 +253,25 @@ body {
 }
 
 .chat-header {
-    padding: 0.6rem 0.9rem;
+    padding: 0.8rem 1rem;
     background: #202c33;
     display: flex;
     align-items: center;
 }
 
-.chat-header-info {
+.chat-avatar {
+    width: 40px;
+    height: 40px;
+    background: #00a884;
+    border-radius: 50%;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: center;
+}
+
+.chat-title {
+    font-size: 1.05rem;
+    font-weight: 600;
 }
 
 .chat-subtitle {
@@ -278,31 +279,22 @@ body {
     color: #8696a0;
 }
 
-/* BACKGROUND PATTERN */
+/* Chat body */
 .chat-body {
     flex: 1;
-    padding: 0.9rem;
+    padding: 1rem;
     overflow-y: auto;
-    background-image: radial-gradient(circle at 1px 1px, #202c33 1px, transparent 0);
+    background-image: radial-gradient(circle at 1px 1px, #1f2c33 1px, transparent 0);
     background-size: 40px 40px;
 }
 
-/* EMPTY STATE */
-.empty-state {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    color: #8696a0;
-    font-size: 0.95rem;
-}
-
+/* ------------------------------------------------------ */
 /* MESSAGES */
+/* ------------------------------------------------------ */
 
 .message-row {
     display: flex;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.45rem;
 }
 
 .message-row.own {
@@ -314,113 +306,97 @@ body {
 }
 
 .message-bubble {
-    max-width: 70%;
-    padding: 0.35rem 0.5rem 0.2rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    position: relative;
-    word-wrap: break-word;
+    max-width: 72%;
+    padding: 0.5rem 0.7rem 0.35rem;
+    border-radius: 12px;
+    font-size: 0.92rem;
+    line-height: 1.3rem;
 }
 
 .message-row.own .message-bubble {
-    background: #005c4b;
+    background: #075e54;
     border-bottom-right-radius: 0;
 }
 
 .message-row.other .message-bubble {
-    background: #202c33;
+    background: #1f2c33;
     border-bottom-left-radius: 0;
+}
+
+.message-image {
+    max-width: 220px;
+    border-radius: 10px;
+    margin-top: 0.2rem;
 }
 
 .message-meta {
     display: flex;
     justify-content: flex-end;
-    align-items: center;
-    gap: 0.2rem;
-    font-size: 0.7rem;
-    color: #8696a0;
-    margin-top: 0.1rem;
+    gap: 0.3rem;
+    font-size: 0.73rem;
+    color: #b2c2c8;
+    margin-top: 0.15rem;
 }
 
-/* Images inside messages */
-.message-image {
-    max-width: 220px;
-    border-radius: 8px;
-    margin-top: 0.2rem;
-    display: block;
-}
-
-/* FOOTER */
+/* ------------------------------------------------------ */
+/* MESSAGE INPUT */
+/* ------------------------------------------------------ */
 
 .chat-footer {
-    padding: 0.5rem 0.9rem;
+    padding: 0.7rem;
     background: #202c33;
 }
 
 #message-form {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-}
-
-.input-icons {
-    display: flex;
-    align-items: center;
+    gap: 0.5rem;
 }
 
 .icon-button {
+    font-size: 1.4rem;
     cursor: pointer;
-    font-size: 1.2rem;
-    user-select: none;
-}
-
-.input-wrapper {
-    flex: 1;
 }
 
 #message-input {
     width: 100%;
     border-radius: 999px;
+    padding: 0.55rem 1rem;
     border: none;
-    padding: 0.5rem 0.9rem;
     background: #111b21;
     color: #e9edef;
 }
 
-#message-input:focus {
-    outline: none;
-}
-
 .send-button {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     border: none;
     background: #25d366;
+    font-size: 1.1rem;
     cursor: pointer;
-    font-size: 1rem;
 }
 
-/* MOBILE LAYOUT */
+/* ------------------------------------------------------ */
+/* MOBILE */
+/* ------------------------------------------------------ */
+
 @media (max-width: 768px) {
+
     .whatsapp-layout {
         flex-direction: column;
         height: 100vh;
-        max-height: none;
         margin: 0;
         border-radius: 0;
     }
 
     .sidebar {
         width: 100%;
-        min-width: 0;
         border-right: none;
-        border-bottom: 1px solid #202c33;
-        max-height: 40vh;
+        border-bottom: 1px solid #1f2c33;
     }
 
     .chat-main {
-        width: 100%;
         flex: 1;
     }
 }
