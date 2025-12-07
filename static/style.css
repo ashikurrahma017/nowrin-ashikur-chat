@@ -67,6 +67,7 @@ body {
 .auth-form input:focus {
     outline: none;
     border-color: #25d366;
+    box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.3);
 }
 
 .btn-primary {
