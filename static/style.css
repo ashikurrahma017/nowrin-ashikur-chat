@@ -1,4 +1,4 @@
-/* Global reset */
+/* RESET */
 * {
     margin: 0;
     padding: 0;
@@ -18,7 +18,7 @@ body {
     justify-content: center;
 }
 
-/* Auth screens */
+/* AUTH PAGES */
 
 .auth-container {
     width: 100%;
@@ -71,7 +71,7 @@ body {
 
 .btn-primary {
     width: 100%;
-    margin-top: 1rem;
+    margin-top: 1.1rem;
     padding: 0.7rem;
     border-radius: 999px;
     border: none;
@@ -96,7 +96,7 @@ body {
     text-decoration: none;
 }
 
-/* Flash messages */
+/* FLASH MESSAGES */
 
 .flash-container {
     margin-bottom: 1rem;
@@ -119,7 +119,7 @@ body {
     color: #b7ffcf;
 }
 
-/* WhatsApp-like layout */
+/* MAIN WHATSAPP LAYOUT */
 
 .whatsapp-layout {
     width: 100%;
@@ -134,7 +134,7 @@ body {
     border: 1px solid #202c33;
 }
 
-/* Sidebar */
+/* SIDEBAR */
 
 .sidebar {
     width: 30%;
@@ -229,7 +229,7 @@ body {
     color: #8696a0;
 }
 
-/* Main chat */
+/* MAIN CHAT */
 
 .chat-main {
     flex: 1;
@@ -256,7 +256,7 @@ body {
     color: #8696a0;
 }
 
-/* Chat background pattern */
+/* BACKGROUND PATTERN */
 .chat-body {
     flex: 1;
     padding: 0.9rem;
@@ -265,7 +265,7 @@ body {
     background-size: 40px 40px;
 }
 
-/* Message bubbles */
+/* MESSAGES */
 
 .message-row {
     display: flex;
@@ -315,7 +315,7 @@ body {
     margin-bottom: 0.1rem;
 }
 
-/* Footer */
+/* FOOTER */
 
 .chat-footer {
     padding: 0.5rem 0.9rem;
@@ -355,7 +355,7 @@ body {
     font-size: 1rem;
 }
 
-/* Mobile */
+/* MOBILE */
 
 @media (max-width: 768px) {
     .whatsapp-layout {
