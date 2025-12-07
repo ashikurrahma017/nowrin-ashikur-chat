@@ -10,18 +10,20 @@ from flask import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from functools import wraps
 import sqlite3
 import os
-from functools import wraps
 
 app = Flask(__name__)
 
-# Use secret from environment on Render; fallback for local dev
+# Secret key: use env var on Render, fallback for local dev
 app.secret_key = os.environ.get("SECRET_KEY", "dev-change-this-key")
 
+# SQLite database path
 DB_PATH = os.path.join(os.path.dirname(__file__), "chat.db")
 
 
+# ---------------------- DB HELPERS ---------------------- #
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -29,6 +31,7 @@ def get_db():
 
 
 def init_db():
+    """Create tables if they don't exist."""
     conn = get_db()
     cur = conn.cursor()
 
@@ -60,11 +63,11 @@ def init_db():
     conn.close()
 
 
-@app.before_first_request
-def before_first_request():
-    init_db()
+# Run DB init once when module is imported
+init_db()
 
 
+# ---------------------- AUTH DECORATOR ---------------------- #
 def login_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
@@ -75,8 +78,10 @@ def login_required(view):
     return wrapped
 
 
+# ---------------------- ROUTES ---------------------- #
 @app.route("/")
 def index():
+    """Home – redirect based on login status."""
     if "user_id" in session:
         return redirect(url_for("chat"))
     return redirect(url_for("login"))
@@ -97,7 +102,8 @@ def register():
 
         try:
             cur.execute(
-                "INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)",
+                "INSERT INTO users (username, password_hash, created_at) "
+                "VALUES (?, ?, ?)",
                 (
                     username,
                     generate_password_hash(password),
@@ -165,12 +171,13 @@ def messages():
         if not text:
             return jsonify({"error": "Empty message"}), 400
 
+        created_at = datetime.now().strftime("%I:%M %p")  # like 12:44 AM
+
         conn = get_db()
         cur = conn.cursor()
-
-        created_at = datetime.now().strftime("%I:%M %p")  # e.g. 12:44 AM
         cur.execute(
-            "INSERT INTO messages (user_id, username, text, created_at) VALUES (?, ?, ?, ?)",
+            "INSERT INTO messages (user_id, username, text, created_at) "
+            "VALUES (?, ?, ?, ?)",
             (session["user_id"], session["username"], text, created_at),
         )
         conn.commit()
@@ -178,7 +185,7 @@ def messages():
 
         return jsonify({"status": "ok"})
 
-    # GET -> all messages
+    # GET: return all messages
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
@@ -199,6 +206,7 @@ def messages():
     return jsonify(messages_list)
 
 
+# ---------------------- MAIN ---------------------- #
 if __name__ == "__main__":
-    # For local development; Render uses gunicorn via Procfile
+    # Local only; on Render we use `gunicorn app:app`
     app.run(debug=True)
