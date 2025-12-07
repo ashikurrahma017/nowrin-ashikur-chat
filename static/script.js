@@ -1,12 +1,18 @@
+const layout = document.querySelector(".whatsapp-layout");
 const messagesContainer = document.getElementById("messages");
 const form = document.getElementById("message-form");
 const input = document.getElementById("message-input");
-const layout = document.querySelector(".whatsapp-layout");
-const currentUser = layout ? layout.dataset.username : null;
+const searchInput = document.getElementById("user-search");
+const userList = document.getElementById("user-list");
+
+const currentUser = layout ? layout.dataset.current : null;
+let activeUser = layout ? layout.dataset.active : null;
 
 async function fetchMessages() {
+    if (!activeUser || !messagesContainer) return;
+
     try {
-        const res = await fetch("/messages");
+        const res = await fetch(`/api/messages/${encodeURIComponent(activeUser)}`);
         if (!res.ok) return;
         const data = await res.json();
         renderMessages(data);
@@ -17,21 +23,21 @@ async function fetchMessages() {
 
 function renderMessages(list) {
     if (!messagesContainer) return;
-
     messagesContainer.innerHTML = "";
 
     list.forEach(msg => {
         const row = document.createElement("div");
         row.classList.add("message-row");
-        row.classList.add(msg.username === currentUser ? "own" : "other");
+        row.classList.add(msg.sender === currentUser ? "own" : "other");
 
         const bubble = document.createElement("div");
         bubble.classList.add("message-bubble");
 
-        if (msg.username !== currentUser) {
+        // Only show name for the other person (useful in future group chats)
+        if (msg.sender !== currentUser) {
             const u = document.createElement("div");
             u.classList.add("message-username");
-            u.textContent = msg.username;
+            u.textContent = msg.sender;
             bubble.appendChild(u);
         }
 
@@ -46,10 +52,9 @@ function renderMessages(list) {
         time.textContent = msg.created_at;
         meta.appendChild(time);
 
-        // WhatsApp-style double tick (not real seen status, just visual)
-        if (msg.username === currentUser) {
+        if (msg.sender === currentUser) {
             const ticks = document.createElement("span");
-            ticks.textContent = "✓✓";
+            ticks.textContent = "✓✓"; // fake seen ticks
             meta.appendChild(ticks);
         }
 
@@ -62,8 +67,10 @@ function renderMessages(list) {
 }
 
 async function sendMessage(text) {
+    if (!activeUser) return;
+
     try {
-        await fetch("/messages", {
+        await fetch(`/api/messages/${encodeURIComponent(activeUser)}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text })
@@ -77,6 +84,8 @@ async function sendMessage(text) {
 if (form && input) {
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
+        if (!activeUser) return;
+
         const text = input.value.trim();
         if (!text) return;
         input.value = "";
@@ -84,6 +93,22 @@ if (form && input) {
     });
 }
 
-// Initial load + polling
-fetchMessages();
-setInterval(fetchMessages, 2000);
+// Poll conversation every 2 seconds
+if (activeUser) {
+    fetchMessages();
+    setInterval(fetchMessages, 2000);
+}
+
+// Simple client-side username search filter
+if (searchInput && userList) {
+    searchInput.addEventListener("input", () => {
+        const term = searchInput.value.toLowerCase();
+        const items = userList.querySelectorAll(".chat-list-item");
+
+        items.forEach(item => {
+            const nameEl = item.querySelector(".username-text");
+            const name = nameEl ? nameEl.textContent.toLowerCase() : "";
+            item.style.display = name.includes(term) ? "" : "none";
+        });
+    });
+}
