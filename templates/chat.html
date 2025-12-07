@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Chat | WhatsChat{% endblock %}
+{% block title %}Chat | Whats chat{% endblock %}
 
 {% block content %}
 <div class="whatsapp-layout"
      data-current="{{ current_username }}"
      data-active="{{ active_username or '' }}">
 
-    <!-- LEFT SIDEBAR: USERS LIST -->
+    <!-- LEFT SIDEBAR: ONLY SEARCH -->
     <aside class="sidebar">
         <header class="sidebar-header">
             <div class="profile-circle">{{ current_username[0]|upper }}</div>
@@ -15,24 +15,16 @@
         </header>
 
         <div class="sidebar-search">
-            <input id="user-search" type="text"
-                   placeholder="Search username">
+            <form id="user-search-form">
+                <input id="search-username" type="text"
+                       placeholder="Search username to chat">
+            </form>
         </div>
 
-        <div class="chat-list" id="user-list">
-            {% for u in users %}
-            <div class="chat-list-item {% if active_username == u['username'] %}active{% endif %}">
-                <a class="chat-list-link" href="{{ url_for('chat', username=u['username']) }}">
-                    <div class="chat-avatar">{{ u['username'][0]|upper }}</div>
-                    <div class="chat-info">
-                        <div class="chat-title username-text">{{ u['username'] }}</div>
-                        <div class="chat-last">
-                            Tap to chat
-                        </div>
-                    </div>
-                </a>
+        <div class="chat-list empty">
+            <div class="chat-last">
+                Search a username and press Enter to start a personal chat.
             </div>
-            {% endfor %}
         </div>
     </aside>
 
@@ -49,7 +41,7 @@
                 {% else %}
                     <div>
                         <div class="chat-title">Select a person</div>
-                        <div class="chat-subtitle">Choose a user from the left to start chatting</div>
+                        <div class="chat-subtitle">Search a username on the left to start chatting</div>
                     </div>
                 {% endif %}
             </div>
@@ -58,16 +50,20 @@
         <section class="chat-body" id="messages">
             {% if not active_username %}
             <div class="empty-state">
-                <p>Select a user from the list to start a personal chat.</p>
+                <p>Search any username you know and start a private chat — just like WhatsApp.</p>
             </div>
             {% endif %}
         </section>
 
         <footer class="chat-footer">
             <form id="message-form">
+                <div class="input-icons">
+                    <label for="image-input" class="icon-button" title="Send photo">📎</label>
+                    <input id="image-input" type="file" accept="image/*" style="display:none">
+                </div>
                 <div class="input-wrapper">
                     <input id="message-input" type="text"
-                           placeholder="{% if active_username %}Type a message{% else %}Select a user first{% endif %}"
+                           placeholder="{% if active_username %}Type a message{% else %}Search a user first{% endif %}"
                            autocomplete="off"
                            {% if not active_username %}disabled{% endif %}>
                 </div>
