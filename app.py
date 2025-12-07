@@ -7,26 +7,20 @@ from flask import (
     session,
     jsonify,
     flash,
-    send_from_directory,
 )
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
 from datetime import datetime
 from functools import wraps
 import sqlite3
 import os
-import time
 
 app = Flask(__name__)
 
 # Secret key: use env var on Render, fallback for local dev
-app.secret_key = os.environ.get("SECRET_KEY", "dev-key")
+app.secret_key = os.environ.get("SECRET_KEY", "dev-change-this-key")
 
-# Paths
-BASE_DIR = os.path.dirname(__file__)
-DB_PATH = os.path.join(BASE_DIR, "chat.db")
-UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# SQLite database path
+DB_PATH = os.path.join(os.path.dirname(__file__), "chat.db")
 
 
 # ---------------------- DB HELPERS ---------------------- #
@@ -37,11 +31,11 @@ def get_db():
 
 
 def init_db():
-    """Create tables only if they don't exist (data is preserved)."""
+    """Create tables if they don't exist."""
     conn = get_db()
     cur = conn.cursor()
 
-    # Users table
+    # users
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -53,15 +47,14 @@ def init_db():
         """
     )
 
-    # Direct messages (text + optional image)
+    # direct messages: sender -> receiver
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             sender_id INTEGER NOT NULL,
             receiver_id INTEGER NOT NULL,
-            text TEXT,
-            image_path TEXT,
+            text TEXT NOT NULL,
             created_at TEXT NOT NULL,
             FOREIGN KEY(sender_id) REFERENCES users(id),
             FOREIGN KEY(receiver_id) REFERENCES users(id)
@@ -73,30 +66,30 @@ def init_db():
     conn.close()
 
 
-# Initialize database at import time
+# Run DB init once when module is imported
 init_db()
 
 
-# ---------------------- DECORATORS ---------------------- #
+# ---------------------- AUTH DECORATOR ---------------------- #
 def login_required(view):
     @wraps(view)
-    def wrapper(*args, **kwargs):
+    def wrapped(*args, **kwargs):
         if "user_id" not in session:
             return redirect(url_for("login"))
         return view(*args, **kwargs)
 
-    return wrapper
+    return wrapped
 
 
-# ---------------------- BASIC ROUTES ---------------------- #
+# ---------------------- AUTH ROUTES ---------------------- #
 @app.route("/")
-def home():
+def index():
+    """Home – redirect based on login status."""
     if "user_id" in session:
         return redirect(url_for("chat"))
     return redirect(url_for("login"))
 
 
-# ---------------------- REGISTER ---------------------- #
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -104,14 +97,16 @@ def register():
         password = request.form.get("password", "").strip()
 
         if not username or not password:
-            flash("Username & password are required.", "error")
+            flash("Username and password are required.", "error")
             return redirect(url_for("register"))
 
         conn = get_db()
         cur = conn.cursor()
+
         try:
             cur.execute(
-                "INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)",
+                "INSERT INTO users (username, password_hash, created_at) "
+                "VALUES (?, ?, ?)",
                 (
                     username,
                     generate_password_hash(password),
@@ -131,7 +126,6 @@ def register():
     return render_template("register.html")
 
 
-# ---------------------- LOGIN ---------------------- #
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -152,37 +146,29 @@ def login():
             session["username"] = user["username"]
             return redirect(url_for("chat"))
         else:
-            flash("Incorrect username or password.", "error")
+            flash("Invalid username or password.", "error")
             return redirect(url_for("login"))
 
     return render_template("login.html")
 
 
-# ---------------------- LOGOUT ---------------------- #
 @app.route("/logout")
-@login_required
 def logout():
     session.clear()
     return redirect(url_for("login"))
 
 
-# ---------------------- CHAT PAGE ---------------------- #
+# ---------------------- CHAT PAGES ---------------------- #
 @app.route("/chat")
 @app.route("/chat/<username>")
 @login_required
 def chat(username=None):
-    """
-    Main chat UI.
-    - Shows list of all other users on the left.
-    - username (optional) is the person you're chatting with.
-    """
-    current_username = session["username"]
+    """Main chat UI. Optional 'username' is the person you’re chatting with."""
     current_user_id = session["user_id"]
 
     conn = get_db()
     cur = conn.cursor()
-
-    # Fetch all other users for sidebar list
+    # list of all other users
     cur.execute(
         "SELECT id, username FROM users WHERE id != ? ORDER BY username ASC",
         (current_user_id,),
@@ -190,146 +176,117 @@ def chat(username=None):
     users = cur.fetchall()
     conn.close()
 
+    # active chat partner
+    active_username = username
+
     return render_template(
         "chat.html",
-        current_username=current_username,
-        active_username=username or "",
+        current_username=session["username"],
         users=users,
+        active_username=active_username,
     )
 
 
-# ---------------------- STATIC UPLOAD SERVE ---------------------- #
-@app.route("/uploads/<path:filename>")
-def uploaded_file(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename)
-
-
-# ---------------------- HELPERS ---------------------- #
-def get_chat_partner(username, current_user_id):
-    """Return user row for chat partner, or None if not exists/self."""
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT id, username FROM users WHERE username = ? AND id != ?",
-        (username, current_user_id),
-    )
-    user = cur.fetchone()
-    conn.close()
-    return user
-
-
-# ---------------------- API: TEXT & FETCH MESSAGES ---------------------- #
+# ---------------------- CHAT APIs ---------------------- #
 @app.route("/api/messages/<username>", methods=["GET", "POST"])
 @login_required
 def api_messages(username):
-    current_id = session["user_id"]
-    current_name = session["username"]
+    """Get or send messages in a personal chat with 'username'."""
+    current_user_id = session["user_id"]
 
-    other = get_chat_partner(username, current_id)
-    if not other:
+    conn = get_db()
+    cur = conn.cursor()
+
+    # find the other user
+    cur.execute("SELECT id, username FROM users WHERE username = ?", (username,))
+    other = cur.fetchone()
+
+    if other is None:
+        conn.close()
         return jsonify({"error": "User not found"}), 404
 
     other_id = other["id"]
 
-    conn = get_db()
-    cur = conn.cursor()
+    if other_id == current_user_id:
+        conn.close()
+        return jsonify({"error": "Cannot chat with yourself"}), 400
 
-    # POST: send text message
     if request.method == "POST":
         data = request.get_json() or {}
         text = (data.get("text") or "").strip()
+
         if not text:
             conn.close()
             return jsonify({"error": "Empty message"}), 400
 
-        time_now = datetime.now().strftime("%I:%M %p")
+        created_at = datetime.now().strftime("%I:%M %p")  # like 12:44 AM
 
         cur.execute(
             """
-            INSERT INTO messages (sender_id, receiver_id, text, image_path, created_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO messages (sender_id, receiver_id, text, created_at)
+            VALUES (?, ?, ?, ?)
             """,
-            (current_id, other_id, text, None, time_now),
+            (current_user_id, other_id, text, created_at),
         )
         conn.commit()
         conn.close()
+
         return jsonify({"status": "ok"})
 
-    # GET: fetch all messages between current user and other
+    # GET: all messages between the two users
     cur.execute(
         """
         SELECT m.id,
                su.username AS sender,
+               ru.username AS receiver,
                m.text,
-               m.image_path,
                m.created_at
         FROM messages m
         JOIN users su ON m.sender_id = su.id
+        JOIN users ru ON m.receiver_id = ru.id
         WHERE (m.sender_id = ? AND m.receiver_id = ?)
            OR (m.sender_id = ? AND m.receiver_id = ?)
         ORDER BY m.id ASC
         """,
-        (current_id, other_id, other_id, current_id),
+        (current_user_id, other_id, other_id, current_user_id),
     )
+
     rows = cur.fetchall()
     conn.close()
 
-    msgs = []
-    for row in rows:
-        msgs.append(
-            {
-                "id": row["id"],
-                "sender": row["sender"],
-                "text": row["text"] or "",
-                "image_url": url_for("uploaded_file", filename=row["image_path"])
-                if row["image_path"]
-                else None,
-                "created_at": row["created_at"],
-            }
-        )
+    messages_list = [
+        {
+            "id": row["id"],
+            "sender": row["sender"],
+            "receiver": row["receiver"],
+            "text": row["text"],
+            "created_at": row["created_at"],
+        }
+        for row in rows
+    ]
 
-    return jsonify(msgs)
+    return jsonify(messages_list)
 
 
-# ---------------------- API: SEND IMAGE ---------------------- #
-@app.route("/api/messages/<username>/image", methods=["POST"])
+# Simple API to list users (not strictly required, but handy if needed later)
+@app.route("/api/users")
 @login_required
-def send_image(username):
-    current_id = session["user_id"]
-
-    other = get_chat_partner(username, current_id)
-    if not other:
-        return jsonify({"error": "User not found"}), 404
-
-    other_id = other["id"]
-    file = request.files.get("image")
-
-    if not file or file.filename == "":
-        return jsonify({"error": "No image provided"}), 400
-
-    # Save file
-    filename = f"{current_id}_{int(time.time())}_{secure_filename(file.filename)}"
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    file.save(filepath)
-
-    time_now = datetime.now().strftime("%I:%M %p")
-
+def api_users():
+    current_user_id = session["user_id"]
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        """
-        INSERT INTO messages (sender_id, receiver_id, text, image_path, created_at)
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (current_id, other_id, None, filename, time_now),
+        "SELECT id, username FROM users WHERE id != ? ORDER BY username ASC",
+        (current_user_id,),
     )
-    conn.commit()
+    rows = cur.fetchall()
     conn.close()
-
-    return jsonify({"status": "ok"})
+    return jsonify(
+        [{"id": r["id"], "username": r["username"]} for r in rows]
+    )
 
 
 # ---------------------- MAIN ---------------------- #
 if __name__ == "__main__":
-    # For local testing; Render uses gunicorn app:app
+    # Local only; on Render we use `gunicorn app:app`
     app.run(debug=True)
