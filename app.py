@@ -165,11 +165,11 @@ def logout():
 def chat(username=None):
     """
     Main chat UI.
-    - On desktop: list + chat.
-    - On mobile:
+    - Desktop: list + chat.
+    - Mobile:
         * /chat       → only list of people
         * /chat/<u>   → only chat with that user (+ back button)
-    - In the list, show last message or 'Let's chat'.
+    - In the list, show last text message or "Let's chat".
     """
     current_username = session["username"]
     current_user_id = session["user_id"]
@@ -188,11 +188,11 @@ def chat(username=None):
     for row in rows:
         other_id = row["id"]
 
-        # Find last message between me and this user
+        # Find last message between me and this user (TEXT ONLY to avoid old schemas)
         cur2 = conn.cursor()
         cur2.execute(
             """
-            SELECT text, image_path, created_at
+            SELECT text, created_at
             FROM messages
             WHERE (sender_id = ? AND receiver_id = ?)
                OR (sender_id = ? AND receiver_id = ?)
@@ -203,13 +203,8 @@ def chat(username=None):
         )
         last = cur2.fetchone()
 
-        if last:
-            if last["text"]:
-                last_msg = last["text"]
-            elif last["image_path"]:
-                last_msg = "📷 Photo"
-            else:
-                last_msg = "Let's chat"
+        if last and last["text"]:
+            last_msg = last["text"]
         else:
             last_msg = "Let's chat"
 
@@ -229,6 +224,7 @@ def chat(username=None):
         active_username=username or "",
         users=users,
     )
+
 
 
 
@@ -335,4 +331,5 @@ def api_users():
 if __name__ == "__main__":
     # Local only; on Render we use `gunicorn app:app`
     app.run(debug=True)
+
 
