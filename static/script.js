@@ -1,9 +1,8 @@
 const messagesContainer = document.getElementById("messages");
 const form = document.getElementById("message-form");
 const input = document.getElementById("message-input");
-
-const layoutEl = document.querySelector(".whatsapp-layout");
-const currentUser = layoutEl ? layoutEl.dataset.username : null;
+const layout = document.querySelector(".whatsapp-layout");
+const currentUser = layout ? layout.dataset.username : null;
 
 async function fetchMessages() {
     try {
@@ -11,8 +10,8 @@ async function fetchMessages() {
         if (!res.ok) return;
         const data = await res.json();
         renderMessages(data);
-    } catch (e) {
-        console.error("Failed to fetch messages", e);
+    } catch (err) {
+        console.error("Error fetching messages", err);
     }
 }
 
@@ -24,11 +23,7 @@ function renderMessages(list) {
     list.forEach(msg => {
         const row = document.createElement("div");
         row.classList.add("message-row");
-        if (msg.username === currentUser) {
-            row.classList.add("own");
-        } else {
-            row.classList.add("other");
-        }
+        row.classList.add(msg.username === currentUser ? "own" : "other");
 
         const bubble = document.createElement("div");
         bubble.classList.add("message-bubble");
@@ -51,7 +46,7 @@ function renderMessages(list) {
         time.textContent = msg.created_at;
         meta.appendChild(time);
 
-        // Small double-tick icon imitation using Unicode
+        // WhatsApp-style double tick (not real seen status, just visual)
         if (msg.username === currentUser) {
             const ticks = document.createElement("span");
             ticks.textContent = "✓✓";
@@ -63,7 +58,6 @@ function renderMessages(list) {
         messagesContainer.appendChild(row);
     });
 
-    // Scroll to bottom
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
@@ -71,14 +65,12 @@ async function sendMessage(text) {
     try {
         await fetch("/messages", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text })
         });
         await fetchMessages();
-    } catch (e) {
-        console.error("Failed to send message", e);
+    } catch (err) {
+        console.error("Error sending message", err);
     }
 }
 
@@ -92,6 +84,6 @@ if (form && input) {
     });
 }
 
-// Poll every 2 seconds
+// Initial load + polling
 fetchMessages();
 setInterval(fetchMessages, 2000);
