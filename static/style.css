@@ -1,0 +1,370 @@
+/* Global reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #111b21;
+    color: #e9edef;
+}
+
+.app-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Auth screens */
+
+.auth-container {
+    width: 100%;
+    max-width: 420px;
+    padding: 2rem;
+}
+
+.auth-card {
+    background: #202c33;
+    border-radius: 12px;
+    padding: 2rem 2.5rem;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+}
+
+.app-title {
+    font-size: 1.4rem;
+    letter-spacing: 0.08em;
+    color: #25d366;
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.auth-title {
+    text-align: center;
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    color: #e9edef;
+}
+
+.auth-form label {
+    display: block;
+    font-size: 0.9rem;
+    margin-bottom: 0.8rem;
+}
+
+.auth-form input {
+    width: 100%;
+    background: #111b21;
+    border: 1px solid #36454f;
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    margin-top: 0.3rem;
+    color: #e9edef;
+}
+
+.auth-form input:focus {
+    outline: none;
+    border-color: #25d366;
+}
+
+.btn-primary {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.7rem;
+    border-radius: 999px;
+    border: none;
+    background: #25d366;
+    color: #111b21;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    filter: brightness(1.05);
+}
+
+.auth-switch {
+    margin-top: 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.auth-switch a {
+    color: #25d366;
+    text-decoration: none;
+}
+
+/* Flash messages */
+
+.flash-container {
+    margin-bottom: 1rem;
+}
+
+.flash {
+    padding: 0.5rem 0.7rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+}
+
+.flash.error {
+    background: #3b1414;
+    color: #ffb3b3;
+}
+
+.flash.success {
+    background: #12351f;
+    color: #b7ffcf;
+}
+
+/* WhatsApp-like layout */
+
+.whatsapp-layout {
+    width: 100%;
+    height: 100vh;
+    max-width: 1200px;
+    max-height: 720px;
+    margin: 1rem;
+    display: flex;
+    background: #111b21;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #202c33;
+}
+
+/* Sidebar */
+
+.sidebar {
+    width: 30%;
+    min-width: 260px;
+    background: #111b21;
+    border-right: 1px solid #202c33;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.7rem 0.9rem;
+    background: #202c33;
+}
+
+.profile-circle,
+.chat-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #008069;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+.sidebar-username {
+    flex: 1;
+    margin-left: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.logout-link {
+    font-size: 0.8rem;
+    color: #d1d7db;
+    text-decoration: none;
+}
+
+.logout-link:hover {
+    text-decoration: underline;
+}
+
+.sidebar-search {
+    padding: 0.4rem 0.6rem;
+    background: #111b21;
+}
+
+.sidebar-search input {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    border-radius: 999px;
+    border: none;
+    background: #202c33;
+    color: #8696a0;
+    font-size: 0.85rem;
+}
+
+.chat-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.chat-list-item {
+    display: flex;
+    padding: 0.6rem 0.8rem;
+    cursor: pointer;
+}
+
+.chat-list-item.active {
+    background: #202c33;
+}
+
+.chat-list-item:hover {
+    background: #202c33;
+}
+
+.chat-info {
+    margin-left: 0.6rem;
+}
+
+.chat-title {
+    font-size: 0.95rem;
+    margin-bottom: 0.1rem;
+}
+
+.chat-last {
+    font-size: 0.8rem;
+    color: #8696a0;
+}
+
+/* Main chat */
+
+.chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #0b141a;
+}
+
+.chat-header {
+    padding: 0.6rem 0.9rem;
+    background: #202c33;
+    display: flex;
+    align-items: center;
+}
+
+.chat-header-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.chat-subtitle {
+    font-size: 0.8rem;
+    color: #8696a0;
+}
+
+/* Chat background pattern */
+.chat-body {
+    flex: 1;
+    padding: 0.9rem;
+    overflow-y: auto;
+    background-image: radial-gradient(circle at 1px 1px, #202c33 1px, transparent 0);
+    background-size: 40px 40px;
+}
+
+/* Message bubbles */
+
+.message-row {
+    display: flex;
+    margin-bottom: 0.3rem;
+}
+
+.message-row.own {
+    justify-content: flex-end;
+}
+
+.message-row.other {
+    justify-content: flex-start;
+}
+
+.message-bubble {
+    max-width: 70%;
+    padding: 0.35rem 0.5rem 0.2rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    position: relative;
+    word-wrap: break-word;
+}
+
+.message-row.own .message-bubble {
+    background: #005c4b;
+    border-bottom-right-radius: 0;
+}
+
+.message-row.other .message-bubble {
+    background: #202c33;
+    border-bottom-left-radius: 0;
+}
+
+.message-meta {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.7rem;
+    color: #8696a0;
+    margin-top: 0.1rem;
+}
+
+.message-username {
+    font-size: 0.8rem;
+    color: #a5b5bf;
+    margin-bottom: 0.1rem;
+}
+
+/* Footer */
+
+.chat-footer {
+    padding: 0.5rem 0.9rem;
+    background: #202c33;
+}
+
+#message-form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.input-wrapper {
+    flex: 1;
+}
+
+#message-input {
+    width: 100%;
+    border-radius: 999px;
+    border: none;
+    padding: 0.5rem 0.9rem;
+    background: #111b21;
+    color: #e9edef;
+}
+
+#message-input:focus {
+    outline: none;
+}
+
+.send-button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: #25d366;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+/* Mobile */
+
+@media (max-width: 768px) {
+    .whatsapp-layout {
+        height: 100vh;
+        margin: 0;
+        border-radius: 0;
+    }
+
+    .sidebar {
+        display: none;
+    }
+}
