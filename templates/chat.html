@@ -6,7 +6,7 @@
      data-current="{{ current_username }}"
      data-active="{{ active_username or '' }}">
 
-    <!-- LEFT SIDEBAR: ONLY SEARCH -->
+    <!-- LEFT SIDEBAR: USER LIST + SEARCH -->
     <aside class="sidebar">
         <header class="sidebar-header">
             <div class="profile-circle">{{ current_username[0]|upper }}</div>
@@ -15,16 +15,27 @@
         </header>
 
         <div class="sidebar-search">
-            <form id="user-search-form">
-                <input id="search-username" type="text"
-                       placeholder="Search username to chat">
-            </form>
+            <input id="user-search" type="text"
+                   placeholder="Search username to chat">
         </div>
 
-        <div class="chat-list empty">
-            <div class="chat-last">
-                Search a username and press Enter to start a personal chat.
+        <div class="chat-list" id="user-list">
+            {% for u in users %}
+            <div class="chat-list-item {% if active_username == u['username'] %}active{% endif %}">
+                <a class="chat-list-link" href="{{ url_for('chat', username=u['username']) }}">
+                    <div class="chat-avatar">{{ u['username'][0]|upper }}</div>
+                    <div class="chat-info">
+                        <div class="chat-title username-text">{{ u['username'] }}</div>
+                        <div class="chat-last">Tap to chat</div>
+                    </div>
+                </a>
             </div>
+            {% endfor %}
+            {% if users|length == 0 %}
+            <div class="chat-last" style="padding:0.8rem;">
+                No other users yet. Ask others to register and they’ll appear here.
+            </div>
+            {% endif %}
         </div>
     </aside>
 
@@ -41,7 +52,9 @@
                 {% else %}
                     <div>
                         <div class="chat-title">Select a person</div>
-                        <div class="chat-subtitle">Search a username on the left to start chatting</div>
+                        <div class="chat-subtitle">
+                            Choose a username from the left sidebar to start chatting
+                        </div>
                     </div>
                 {% endif %}
             </div>
@@ -50,7 +63,7 @@
         <section class="chat-body" id="messages">
             {% if not active_username %}
             <div class="empty-state">
-                <p>Search any username you know and start a private chat — just like WhatsApp.</p>
+                <p>Select any user from the list on the left to see your messages with them.</p>
             </div>
             {% endif %}
         </section>
@@ -63,7 +76,7 @@
                 </div>
                 <div class="input-wrapper">
                     <input id="message-input" type="text"
-                           placeholder="{% if active_username %}Type a message{% else %}Search a user first{% endif %}"
+                           placeholder="{% if active_username %}Type a message{% else %}Select a user first{% endif %}"
                            autocomplete="off"
                            {% if not active_username %}disabled{% endif %}>
                 </div>
