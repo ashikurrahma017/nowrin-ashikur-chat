@@ -38,7 +38,14 @@ body {
     letter-spacing: 0.08em;
     color: #25d366;
     text-align: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.3rem;
+}
+
+.powered-by {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #8696a0;
+    margin-bottom: 0.8rem;
 }
 
 .auth-title {
@@ -201,6 +208,14 @@ body {
     overflow-y: auto;
 }
 
+.chat-list.empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: left;
+    padding: 0.8rem;
+}
+
 .chat-list-item {
     display: flex;
     padding: 0.6rem 0.8rem;
@@ -327,10 +342,12 @@ body {
     margin-top: 0.1rem;
 }
 
-.message-username {
-    font-size: 0.8rem;
-    color: #a5b5bf;
-    margin-bottom: 0.1rem;
+/* Images inside messages */
+.message-image {
+    max-width: 220px;
+    border-radius: 8px;
+    margin-top: 0.2rem;
+    display: block;
 }
 
 /* FOOTER */
@@ -343,7 +360,18 @@ body {
 #message-form {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
+}
+
+.input-icons {
+    display: flex;
+    align-items: center;
+}
+
+.icon-button {
+    cursor: pointer;
+    font-size: 1.2rem;
+    user-select: none;
 }
 
 .input-wrapper {
