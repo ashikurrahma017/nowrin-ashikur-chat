@@ -1,12 +1,25 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    session,
+    jsonify,
+    flash,
+)
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3
 from datetime import datetime
+import sqlite3
 import os
+from functools import wraps
 
 app = Flask(__name__)
-app.secret_key = "change_this_to_a_very_secret_random_key"  # IMPORTANT: change in production
-DB_PATH = "chat.db"
+
+# Use secret from environment on Render; fallback for local dev
+app.secret_key = os.environ.get("SECRET_KEY", "dev-change-this-key")
+
+DB_PATH = os.path.join(os.path.dirname(__file__), "chat.db")
 
 
 def get_db():
@@ -16,49 +29,48 @@ def get_db():
 
 
 def init_db():
-    if not os.path.exists(DB_PATH):
-        conn = get_db()
-        cur = conn.cursor()
+    conn = get_db()
+    cur = conn.cursor()
 
-        # Users table
-        cur.execute("""
-        CREATE TABLE users (
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             created_at TEXT NOT NULL
         );
-        """)
+        """
+    )
 
-        # Messages table
-        cur.execute("""
-        CREATE TABLE messages (
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             username TEXT NOT NULL,
             text TEXT NOT NULL,
             created_at TEXT NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            FOREIGN KEY(user_id) REFERENCES users(id)
         );
-        """)
+        """
+    )
 
-        conn.commit()
-        conn.close()
+    conn.commit()
+    conn.close()
 
 
 @app.before_first_request
-def setup():
+def before_first_request():
     init_db()
 
 
-def login_required(view_func):
-    from functools import wraps
-
-    @wraps(view_func)
+def login_required(view):
+    @wraps(view)
     def wrapped(*args, **kwargs):
         if "user_id" not in session:
             return redirect(url_for("login"))
-        return view_func(*args, **kwargs)
+        return view(*args, **kwargs)
 
     return wrapped
 
@@ -86,11 +98,15 @@ def register():
         try:
             cur.execute(
                 "INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)",
-                (username, generate_password_hash(password), datetime.utcnow().isoformat())
+                (
+                    username,
+                    generate_password_hash(password),
+                    datetime.utcnow().isoformat(),
+                ),
             )
             conn.commit()
         except sqlite3.IntegrityError:
-            flash("Username already taken. Choose another.", "error")
+            flash("Username already taken. Choose another one.", "error")
             conn.close()
             return redirect(url_for("register"))
 
@@ -109,7 +125,10 @@ def login():
 
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT id, username, password_hash FROM users WHERE username = ?", (username,))
+        cur.execute(
+            "SELECT id, username, password_hash FROM users WHERE username = ?",
+            (username,),
+        )
         user = cur.fetchone()
         conn.close()
 
@@ -146,25 +165,25 @@ def messages():
         if not text:
             return jsonify({"error": "Empty message"}), 400
 
-        user_id = session["user_id"]
-        username = session["username"]
-        created_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
-
         conn = get_db()
         cur = conn.cursor()
+
+        created_at = datetime.now().strftime("%I:%M %p")  # e.g. 12:44 AM
         cur.execute(
             "INSERT INTO messages (user_id, username, text, created_at) VALUES (?, ?, ?, ?)",
-            (user_id, username, text, created_at),
+            (session["user_id"], session["username"], text, created_at),
         )
         conn.commit()
         conn.close()
 
         return jsonify({"status": "ok"})
 
-    # GET -> return all messages (or last N)
+    # GET -> all messages
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT id, username, text, created_at FROM messages ORDER BY id ASC")
+    cur.execute(
+        "SELECT id, username, text, created_at FROM messages ORDER BY id ASC"
+    )
     rows = cur.fetchall()
     conn.close()
 
@@ -177,9 +196,9 @@ def messages():
         }
         for row in rows
     ]
-
     return jsonify(messages_list)
 
 
 if __name__ == "__main__":
+    # For local development; Render uses gunicorn via Procfile
     app.run(debug=True)
