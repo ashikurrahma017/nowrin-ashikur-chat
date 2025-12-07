@@ -4,11 +4,13 @@ const form = document.getElementById("message-form");
 const input = document.getElementById("message-input");
 const imageInput = document.getElementById("image-input");
 
-const searchForm = document.getElementById("user-search-form");
-const searchInput = document.getElementById("search-username");
+const searchInput = document.getElementById("user-search");
+const userList = document.getElementById("user-list");
 
 const currentUser = layout ? layout.dataset.current : null;
 let activeUser = layout ? layout.dataset.active : null;
+
+/* ----------------- MESSAGE FETCH & RENDER ----------------- */
 
 async function fetchMessages() {
     if (!activeUser || !messagesContainer) return;
@@ -35,7 +37,7 @@ function renderMessages(list) {
         const bubble = document.createElement("div");
         bubble.classList.add("message-bubble");
 
-        // TEXT (no username shown, WhatsApp-style)
+        // TEXT (no usernames shown, WhatsApp-style)
         if (msg.text) {
             const textEl = document.createElement("div");
             textEl.textContent = msg.text;
@@ -60,7 +62,7 @@ function renderMessages(list) {
 
         if (msg.sender === currentUser) {
             const ticks = document.createElement("span");
-            ticks.textContent = "✓✓"; // visual double tick
+            ticks.textContent = "✓✓";
             meta.appendChild(ticks);
         }
 
@@ -74,7 +76,6 @@ function renderMessages(list) {
 
 async function sendText(text) {
     if (!activeUser) return;
-
     try {
         await fetch(`/api/messages/${encodeURIComponent(activeUser)}`, {
             method: "POST",
@@ -89,7 +90,6 @@ async function sendText(text) {
 
 async function sendImage(file) {
     if (!activeUser || !file) return;
-
     const fd = new FormData();
     fd.append("image", file);
 
@@ -104,10 +104,13 @@ async function sendImage(file) {
     }
 }
 
+/* ----------------- EVENT HANDLERS ----------------- */
+
 if (form && input) {
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
         if (!activeUser) return;
+
         const text = input.value.trim();
         if (!text) return;
         input.value = "";
@@ -124,18 +127,23 @@ if (imageInput) {
     });
 }
 
-// Poll conversation every 2 seconds
+/* Poll current chat every 2 seconds */
 if (activeUser) {
     fetchMessages();
     setInterval(fetchMessages, 2000);
 }
 
-// SEARCH: redirect to /chat/<username>
-if (searchForm && searchInput) {
-    searchForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const name = searchInput.value.trim();
-        if (!name) return;
-        window.location.href = `/chat/${encodeURIComponent(name)}`;
+/* ----------------- USER SEARCH (FILTER LIST) ----------------- */
+
+if (searchInput && userList) {
+    searchInput.addEventListener("input", () => {
+        const term = searchInput.value.toLowerCase();
+        const items = userList.querySelectorAll(".chat-list-item");
+
+        items.forEach(item => {
+            const nameEl = item.querySelector(".username-text");
+            const name = nameEl ? nameEl.textContent.toLowerCase() : "";
+            item.style.display = name.includes(term) ? "" : "none";
+        });
     });
 }
