@@ -376,24 +376,48 @@ body {
 
 /* MOBILE LAYOUT */
 @media (max-width: 768px) {
+    /* Common */
     .whatsapp-layout {
-        flex-direction: column;
         height: 100vh;
         max-height: none;
         margin: 0;
         border-radius: 0;
+        flex-direction: column;
     }
 
-    .sidebar {
+    /* LIST VIEW: /chat (no active user) */
+    .whatsapp-layout.list-view .sidebar {
         width: 100%;
         min-width: 0;
         border-right: none;
-        border-bottom: 1px solid #202c33;
-        max-height: 40vh;
+        border-bottom: 1px solid #1f2c33;
+        max-height: none;
+        flex: 1;
     }
 
-    .chat-main {
+    .whatsapp-layout.list-view .chat-main {
+        display: none;
+    }
+
+    /* CHAT VIEW: /chat/<username> */
+    .whatsapp-layout.chat-view .sidebar {
+        display: none;
+    }
+
+    .whatsapp-layout.chat-view .chat-main {
         width: 100%;
         flex: 1;
     }
+
+    /* show back arrow only in chat view on mobile */
+    .whatsapp-layout.chat-view .mobile-back {
+        display: flex;
+    }
+}
+.mobile-back {
+    display: none;        /* hidden on desktop; shown on mobile chat view */
+    margin-right: 0.6rem;
+    font-size: 1.4rem;
+    cursor: pointer;
+    align-items: center;
 }
