@@ -2,15 +2,11 @@ const layout = document.querySelector(".whatsapp-layout");
 const messagesContainer = document.getElementById("messages");
 const form = document.getElementById("message-form");
 const input = document.getElementById("message-input");
-const imageInput = document.getElementById("image-input");
-
 const searchInput = document.getElementById("user-search");
 const userList = document.getElementById("user-list");
 
 const currentUser = layout ? layout.dataset.current : null;
 let activeUser = layout ? layout.dataset.active : null;
-
-/* ----------------- MESSAGE FETCH & RENDER ----------------- */
 
 async function fetchMessages() {
     if (!activeUser || !messagesContainer) return;
@@ -37,21 +33,17 @@ function renderMessages(list) {
         const bubble = document.createElement("div");
         bubble.classList.add("message-bubble");
 
-        // TEXT (no usernames shown, WhatsApp-style)
-        if (msg.text) {
-            const textEl = document.createElement("div");
-            textEl.textContent = msg.text;
-            bubble.appendChild(textEl);
+        // Only show name for the other person (useful in future group chats)
+        if (msg.sender !== currentUser) {
+            const u = document.createElement("div");
+            u.classList.add("message-username");
+            u.textContent = msg.sender;
+            bubble.appendChild(u);
         }
 
-        // IMAGE
-        if (msg.image_url) {
-            const img = document.createElement("img");
-            img.src = msg.image_url;
-            img.alt = "image";
-            img.classList.add("message-image");
-            bubble.appendChild(img);
-        }
+        const textEl = document.createElement("div");
+        textEl.textContent = msg.text;
+        bubble.appendChild(textEl);
 
         const meta = document.createElement("div");
         meta.classList.add("message-meta");
@@ -62,7 +54,7 @@ function renderMessages(list) {
 
         if (msg.sender === currentUser) {
             const ticks = document.createElement("span");
-            ticks.textContent = "✓✓";
+            ticks.textContent = "✓✓"; // fake seen ticks
             meta.appendChild(ticks);
         }
 
@@ -74,8 +66,9 @@ function renderMessages(list) {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
-async function sendText(text) {
+async function sendMessage(text) {
     if (!activeUser) return;
+
     try {
         await fetch(`/api/messages/${encodeURIComponent(activeUser)}`, {
             method: "POST",
@@ -88,24 +81,6 @@ async function sendText(text) {
     }
 }
 
-async function sendImage(file) {
-    if (!activeUser || !file) return;
-    const fd = new FormData();
-    fd.append("image", file);
-
-    try {
-        await fetch(`/api/messages/${encodeURIComponent(activeUser)}/image`, {
-            method: "POST",
-            body: fd,
-        });
-        await fetchMessages();
-    } catch (err) {
-        console.error("Error sending image", err);
-    }
-}
-
-/* ----------------- EVENT HANDLERS ----------------- */
-
 if (form && input) {
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -114,27 +89,17 @@ if (form && input) {
         const text = input.value.trim();
         if (!text) return;
         input.value = "";
-        await sendText(text);
+        await sendMessage(text);
     });
 }
 
-if (imageInput) {
-    imageInput.addEventListener("change", async () => {
-        const file = imageInput.files[0];
-        if (!file) return;
-        await sendImage(file);
-        imageInput.value = "";
-    });
-}
-
-/* Poll current chat every 2 seconds */
+// Poll conversation every 2 seconds
 if (activeUser) {
     fetchMessages();
     setInterval(fetchMessages, 2000);
 }
 
-/* ----------------- USER SEARCH (FILTER LIST) ----------------- */
-
+// Simple client-side username search filter
 if (searchInput && userList) {
     searchInput.addEventListener("input", () => {
         const term = searchInput.value.toLowerCase();
