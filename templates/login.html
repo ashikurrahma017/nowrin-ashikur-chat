@@ -1,41 +1,38 @@
 {% extends "base.html" %}
-{% block title %}Register | Whats chat{% endblock %}
+{% block title %}Login | Whats chat{% endblock %}
 
 {% block content %}
 <div class="auth-container">
     <div class="auth-card">
+
         <h1 class="app-title">Whats chat by ashikur</h1>
         <p class="powered-by">Powered by Ashikur Rahman</p>
-        <h2 class="auth-title">Create account</h2>
+
+        <h2 class="auth-title">Login</h2>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            <div class="flash-container">
-              {% for category, message in messages %}
-                <div class="flash {{ category }}">{{ message }}</div>
-              {% endfor %}
-            </div>
-          {% endif %}
+            {% if messages %}
+                <div class="flash-container">
+                    {% for category, msg in messages %}
+                        <div class="flash {{ category }}">{{ msg }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
         {% endwith %}
 
-        <form method="POST" class="auth-form">
-            <label>
-                Username
-                <input type="text" name="username" required autocomplete="username">
+        <form method="POST">
+            <label>Username
+                <input name="username" required>
             </label>
 
-            <label>
-                Password
-                <input type="password" name="password" required autocomplete="new-password">
+            <label>Password
+                <input type="password" name="password" required>
             </label>
 
-            <button type="submit" class="btn-primary">Sign up</button>
+            <button class="btn-primary">Login</button>
         </form>
 
-        <p class="auth-switch">
-            Already have an account?
-            <a href="{{ url_for('login') }}">Login</a>
-        </p>
+        <p class="auth-switch">New user? <a href="{{ url_for('register') }}">Register</a></p>
     </div>
 </div>
 {% endblock %}
