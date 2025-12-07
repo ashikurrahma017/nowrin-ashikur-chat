@@ -2,8 +2,10 @@ const layout = document.querySelector(".whatsapp-layout");
 const messagesContainer = document.getElementById("messages");
 const form = document.getElementById("message-form");
 const input = document.getElementById("message-input");
-const searchInput = document.getElementById("user-search");
-const userList = document.getElementById("user-list");
+const imageInput = document.getElementById("image-input");
+
+const searchForm = document.getElementById("user-search-form");
+const searchInput = document.getElementById("search-username");
 
 const currentUser = layout ? layout.dataset.current : null;
 let activeUser = layout ? layout.dataset.active : null;
@@ -33,17 +35,21 @@ function renderMessages(list) {
         const bubble = document.createElement("div");
         bubble.classList.add("message-bubble");
 
-        // Only show name for the other person (useful in future group chats)
-        if (msg.sender !== currentUser) {
-            const u = document.createElement("div");
-            u.classList.add("message-username");
-            u.textContent = msg.sender;
-            bubble.appendChild(u);
+        // TEXT (no username shown, WhatsApp-style)
+        if (msg.text) {
+            const textEl = document.createElement("div");
+            textEl.textContent = msg.text;
+            bubble.appendChild(textEl);
         }
 
-        const textEl = document.createElement("div");
-        textEl.textContent = msg.text;
-        bubble.appendChild(textEl);
+        // IMAGE
+        if (msg.image_url) {
+            const img = document.createElement("img");
+            img.src = msg.image_url;
+            img.alt = "image";
+            img.classList.add("message-image");
+            bubble.appendChild(img);
+        }
 
         const meta = document.createElement("div");
         meta.classList.add("message-meta");
@@ -54,7 +60,7 @@ function renderMessages(list) {
 
         if (msg.sender === currentUser) {
             const ticks = document.createElement("span");
-            ticks.textContent = "✓✓"; // fake seen ticks
+            ticks.textContent = "✓✓"; // visual double tick
             meta.appendChild(ticks);
         }
 
@@ -66,7 +72,7 @@ function renderMessages(list) {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
-async function sendMessage(text) {
+async function sendText(text) {
     if (!activeUser) return;
 
     try {
@@ -81,15 +87,40 @@ async function sendMessage(text) {
     }
 }
 
+async function sendImage(file) {
+    if (!activeUser || !file) return;
+
+    const fd = new FormData();
+    fd.append("image", file);
+
+    try {
+        await fetch(`/api/messages/${encodeURIComponent(activeUser)}/image`, {
+            method: "POST",
+            body: fd,
+        });
+        await fetchMessages();
+    } catch (err) {
+        console.error("Error sending image", err);
+    }
+}
+
 if (form && input) {
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
         if (!activeUser) return;
-
         const text = input.value.trim();
         if (!text) return;
         input.value = "";
-        await sendMessage(text);
+        await sendText(text);
+    });
+}
+
+if (imageInput) {
+    imageInput.addEventListener("change", async () => {
+        const file = imageInput.files[0];
+        if (!file) return;
+        await sendImage(file);
+        imageInput.value = "";
     });
 }
 
@@ -99,16 +130,12 @@ if (activeUser) {
     setInterval(fetchMessages, 2000);
 }
 
-// Simple client-side username search filter
-if (searchInput && userList) {
-    searchInput.addEventListener("input", () => {
-        const term = searchInput.value.toLowerCase();
-        const items = userList.querySelectorAll(".chat-list-item");
-
-        items.forEach(item => {
-            const nameEl = item.querySelector(".username-text");
-            const name = nameEl ? nameEl.textContent.toLowerCase() : "";
-            item.style.display = name.includes(term) ? "" : "none";
-        });
+// SEARCH: redirect to /chat/<username>
+if (searchForm && searchInput) {
+    searchForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const name = searchInput.value.trim();
+        if (!name) return;
+        window.location.href = `/chat/${encodeURIComponent(name)}`;
     });
 }
