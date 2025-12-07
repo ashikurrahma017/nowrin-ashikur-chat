@@ -5,6 +5,11 @@
     box-sizing: border-box;
 }
 
+html,
+body {
+    height: 100%;
+}
+
 body {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: #111b21;
@@ -124,7 +129,7 @@ body {
 
 .whatsapp-layout {
     width: 100%;
-    height: 100vh;
+    height: 100%;
     max-width: 1200px;
     max-height: 720px;
     margin: 1rem;
@@ -374,11 +379,22 @@ body {
     font-size: 1rem;
 }
 
+/* ATTACHMENT ICON (if you use it) */
+.input-icons {
+    display: flex;
+    align-items: center;
+}
+
+.icon-button {
+    cursor: pointer;
+    font-size: 1.3rem;
+}
+
 /* MOBILE LAYOUT */
 @media (max-width: 768px) {
     /* Common */
     .whatsapp-layout {
-        height: 100vh;
+        height: 100dvh;     /* dynamic viewport height – better with keyboard */
         max-height: none;
         margin: 0;
         border-radius: 0;
@@ -407,6 +423,8 @@ body {
     .whatsapp-layout.chat-view .chat-main {
         width: 100%;
         flex: 1;
+        display: flex;
+        flex-direction: column;
     }
 
     /* show back arrow only in chat view on mobile */
@@ -414,6 +432,7 @@ body {
         display: flex;
     }
 }
+
 .mobile-back {
     display: none;        /* hidden on desktop; shown on mobile chat view */
     margin-right: 0.6rem;
