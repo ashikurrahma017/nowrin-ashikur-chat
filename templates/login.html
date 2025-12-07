@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h1 class="app-title">WhatsChat</h1>
+        <h2 class="auth-title">Login</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-container">
+              {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST" class="auth-form">
+            <label>
+                Username
+                <input type="text" name="username" required autocomplete="username">
+            </label>
+
+            <label>
+                Password
+                <input type="password" name="password" required autocomplete="current-password">
+            </label>
+
+            <button type="submit" class="btn-primary">Login</button>
+        </form>
+
+        <p class="auth-switch">
+            New here?
+            <a href="{{ url_for('register') }}">Create an account</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
+
