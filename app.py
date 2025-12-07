@@ -158,33 +158,78 @@ def logout():
     return redirect(url_for("login"))
 
 
-# ---------------------- CHAT PAGES ---------------------- #
+# ---------------------- CHAT PAGE ---------------------- #
 @app.route("/chat")
 @app.route("/chat/<username>")
 @login_required
 def chat(username=None):
-    """Main chat UI. Optional 'username' is the person you’re chatting with."""
+    """
+    Main chat UI.
+    - On desktop: list + chat.
+    - On mobile:
+        * /chat       → only list of people
+        * /chat/<u>   → only chat with that user (+ back button)
+    - In the list, show last message or 'Let's chat'.
+    """
+    current_username = session["username"]
     current_user_id = session["user_id"]
 
     conn = get_db()
     cur = conn.cursor()
-    # list of all other users
+
+    # Get all other users
     cur.execute(
         "SELECT id, username FROM users WHERE id != ? ORDER BY username ASC",
         (current_user_id,),
     )
-    users = cur.fetchall()
-    conn.close()
+    rows = cur.fetchall()
 
-    # active chat partner
-    active_username = username
+    users = []
+    for row in rows:
+        other_id = row["id"]
+
+        # Find last message between me and this user
+        cur2 = conn.cursor()
+        cur2.execute(
+            """
+            SELECT text, image_path, created_at
+            FROM messages
+            WHERE (sender_id = ? AND receiver_id = ?)
+               OR (sender_id = ? AND receiver_id = ?)
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (current_user_id, other_id, other_id, current_user_id),
+        )
+        last = cur2.fetchone()
+
+        if last:
+            if last["text"]:
+                last_msg = last["text"]
+            elif last["image_path"]:
+                last_msg = "📷 Photo"
+            else:
+                last_msg = "Let's chat"
+        else:
+            last_msg = "Let's chat"
+
+        users.append(
+            {
+                "id": other_id,
+                "username": row["username"],
+                "last_msg": last_msg,
+            }
+        )
+
+    conn.close()
 
     return render_template(
         "chat.html",
-        current_username=session["username"],
+        current_username=current_username,
+        active_username=username or "",
         users=users,
-        active_username=active_username,
     )
+
 
 
 # ---------------------- CHAT APIs ---------------------- #
@@ -290,3 +335,4 @@ def api_users():
 if __name__ == "__main__":
     # Local only; on Render we use `gunicorn app:app`
     app.run(debug=True)
+
