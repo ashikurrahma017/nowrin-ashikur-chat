@@ -7,20 +7,25 @@ from flask import (
     session,
     jsonify,
     flash,
+    send_from_directory,
 )
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from datetime import datetime
 from functools import wraps
 import sqlite3
 import os
+import time
 
 app = Flask(__name__)
 
 # Secret key: use env var on Render, fallback for local dev
 app.secret_key = os.environ.get("SECRET_KEY", "dev-change-this-key")
 
-# SQLite database path
-DB_PATH = os.path.join(os.path.dirname(__file__), "chat.db")
+BASE_DIR = os.path.dirname(__file__)
+DB_PATH = os.path.join(BASE_DIR, "chat.db")
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
 # ---------------------- DB HELPERS ---------------------- #
@@ -47,14 +52,15 @@ def init_db():
         """
     )
 
-    # direct messages: sender -> receiver
+    # direct messages: sender -> receiver, text or image
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             sender_id INTEGER NOT NULL,
             receiver_id INTEGER NOT NULL,
-            text TEXT NOT NULL,
+            text TEXT,
+            image_path TEXT,
             created_at TEXT NOT NULL,
             FOREIGN KEY(sender_id) REFERENCES users(id),
             FOREIGN KEY(receiver_id) REFERENCES users(id)
@@ -84,7 +90,6 @@ def login_required(view):
 # ---------------------- AUTH ROUTES ---------------------- #
 @app.route("/")
 def index():
-    """Home – redirect based on login status."""
     if "user_id" in session:
         return redirect(url_for("chat"))
     return redirect(url_for("login"))
@@ -163,53 +168,68 @@ def logout():
 @app.route("/chat/<username>")
 @login_required
 def chat(username=None):
-    """Main chat UI. Optional 'username' is the person you’re chatting with."""
+    """Main chat UI. User chooses partner only via search."""
+    current_username = session["username"]
     current_user_id = session["user_id"]
 
-    conn = get_db()
-    cur = conn.cursor()
-    # list of all other users
-    cur.execute(
-        "SELECT id, username FROM users WHERE id != ? ORDER BY username ASC",
-        (current_user_id,),
-    )
-    users = cur.fetchall()
-    conn.close()
+    active_username = None
+    if username:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id FROM users WHERE username = ? AND id != ?",
+            (username, current_user_id),
+        )
+        other = cur.fetchone()
+        conn.close()
 
-    # active chat partner
-    active_username = username
+        if other:
+            active_username = username
+        else:
+            flash("User not found.", "error")
+            return redirect(url_for("chat"))
 
     return render_template(
         "chat.html",
-        current_username=session["username"],
-        users=users,
+        current_username=current_username,
         active_username=active_username,
     )
 
 
+# ---------------------- FILE SERVE ---------------------- #
+@app.route("/uploads/<path:filename>")
+def uploaded_file(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename)
+
+
 # ---------------------- CHAT APIs ---------------------- #
+def _get_other_user(username, current_user_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id, username FROM users WHERE username = ? AND id != ?",
+        (username, current_user_id),
+    )
+    user = cur.fetchone()
+    conn.close()
+    return user
+
+
 @app.route("/api/messages/<username>", methods=["GET", "POST"])
 @login_required
 def api_messages(username):
-    """Get or send messages in a personal chat with 'username'."""
+    """Get or send TEXT messages in a personal chat with 'username'."""
     current_user_id = session["user_id"]
+    current_username = session["username"]
 
-    conn = get_db()
-    cur = conn.cursor()
-
-    # find the other user
-    cur.execute("SELECT id, username FROM users WHERE username = ?", (username,))
-    other = cur.fetchone()
-
+    other = _get_other_user(username, current_user_id)
     if other is None:
-        conn.close()
         return jsonify({"error": "User not found"}), 404
 
     other_id = other["id"]
 
-    if other_id == current_user_id:
-        conn.close()
-        return jsonify({"error": "Cannot chat with yourself"}), 400
+    conn = get_db()
+    cur = conn.cursor()
 
     if request.method == "POST":
         data = request.get_json() or {}
@@ -219,18 +239,17 @@ def api_messages(username):
             conn.close()
             return jsonify({"error": "Empty message"}), 400
 
-        created_at = datetime.now().strftime("%I:%M %p")  # like 12:44 AM
+        created_at = datetime.now().strftime("%I:%M %p")
 
         cur.execute(
             """
-            INSERT INTO messages (sender_id, receiver_id, text, created_at)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO messages (sender_id, receiver_id, text, image_path, created_at)
+            VALUES (?, ?, ?, ?, ?)
             """,
-            (current_user_id, other_id, text, created_at),
+            (current_user_id, other_id, text, None, created_at),
         )
         conn.commit()
         conn.close()
-
         return jsonify({"status": "ok"})
 
     # GET: all messages between the two users
@@ -240,6 +259,7 @@ def api_messages(username):
                su.username AS sender,
                ru.username AS receiver,
                m.text,
+               m.image_path,
                m.created_at
         FROM messages m
         JOIN users su ON m.sender_id = su.id
@@ -250,43 +270,67 @@ def api_messages(username):
         """,
         (current_user_id, other_id, other_id, current_user_id),
     )
-
     rows = cur.fetchall()
     conn.close()
 
-    messages_list = [
-        {
-            "id": row["id"],
-            "sender": row["sender"],
-            "receiver": row["receiver"],
-            "text": row["text"],
-            "created_at": row["created_at"],
-        }
-        for row in rows
-    ]
-
+    messages_list = []
+    for row in rows:
+        image_url = (
+            url_for("uploaded_file", filename=row["image_path"])
+            if row["image_path"]
+            else None
+        )
+        messages_list.append(
+            {
+                "id": row["id"],
+                "sender": row["sender"],
+                "receiver": row["receiver"],
+                "text": row["text"] or "",
+                "image_url": image_url,
+                "created_at": row["created_at"],
+            }
+        )
     return jsonify(messages_list)
 
 
-# Simple API to list users (not strictly required, but handy if needed later)
-@app.route("/api/users")
+@app.route("/api/messages/<username>/image", methods=["POST"])
 @login_required
-def api_users():
+def api_messages_image(username):
+    """Send an IMAGE message to 'username'."""
     current_user_id = session["user_id"]
+
+    other = _get_other_user(username, current_user_id)
+    if other is None:
+        return jsonify({"error": "User not found"}), 404
+
+    other_id = other["id"]
+
+    file = request.files.get("image")
+    if not file or file.filename == "":
+        return jsonify({"error": "No image provided"}), 400
+
+    # Save file
+    filename = f"{current_user_id}_{int(time.time())}_{secure_filename(file.filename)}"
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(filepath)
+
+    created_at = datetime.now().strftime("%I:%M %p")
+
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        "SELECT id, username FROM users WHERE id != ? ORDER BY username ASC",
-        (current_user_id,),
+        """
+        INSERT INTO messages (sender_id, receiver_id, text, image_path, created_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (current_user_id, other_id, None, filename, created_at),
     )
-    rows = cur.fetchall()
+    conn.commit()
     conn.close()
-    return jsonify(
-        [{"id": r["id"], "username": r["username"]} for r in rows]
-    )
+
+    return jsonify({"status": "ok"})
 
 
 # ---------------------- MAIN ---------------------- #
 if __name__ == "__main__":
-    # Local only; on Render we use `gunicorn app:app`
     app.run(debug=True)
