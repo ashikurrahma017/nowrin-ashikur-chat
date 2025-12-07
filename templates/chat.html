@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Chat | WhatsChat{% endblock %}
+
+{% block content %}
+<div class="whatsapp-layout" data-username="{{ username }}">
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+        <header class="sidebar-header">
+            <div class="profile-circle">{{ username[0]|upper }}</div>
+            <span class="sidebar-username">{{ username }}</span>
+            <a class="logout-link" href="{{ url_for('logout') }}">Logout</a>
+        </header>
+
+        <div class="sidebar-search">
+            <input type="text" placeholder="Search or start a new chat" disabled>
+        </div>
+
+        <div class="chat-list">
+            <div class="chat-list-item active">
+                <div class="chat-avatar">{{ username[0]|upper }}</div>
+                <div class="chat-info">
+                    <div class="chat-title">Global Room</div>
+                    <div class="chat-last">All users share this room</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CHAT AREA -->
+    <main class="chat-main">
+        <header class="chat-header">
+            <div class="chat-header-info">
+                <div class="chat-avatar">{{ username[0]|upper }}</div>
+                <div>
+                    <div class="chat-title">Global Room</div>
+                    <div class="chat-subtitle">Messages are stored securely</div>
+                </div>
+            </div>
+        </header>
+
+        <section class="chat-body" id="messages"></section>
+
+        <footer class="chat-footer">
+            <form id="message-form">
+                <div class="input-wrapper">
+                    <input id="message-input" type="text" placeholder="Type a message" autocomplete="off">
+                </div>
+                <button type="submit" class="send-button">➤</button>
+            </form>
+        </footer>
+    </main>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+{% endblock %}
