@@ -35,6 +35,7 @@ def init_db():
     conn = get_db()
     cur = conn.cursor()
 
+    # users
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -46,15 +47,17 @@ def init_db():
         """
     )
 
+    # direct messages: sender -> receiver
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            username TEXT NOT NULL,
+            sender_id INTEGER NOT NULL,
+            receiver_id INTEGER NOT NULL,
             text TEXT NOT NULL,
             created_at TEXT NOT NULL,
-            FOREIGN KEY(user_id) REFERENCES users(id)
+            FOREIGN KEY(sender_id) REFERENCES users(id),
+            FOREIGN KEY(receiver_id) REFERENCES users(id)
         );
         """
     )
@@ -78,7 +81,7 @@ def login_required(view):
     return wrapped
 
 
-# ---------------------- ROUTES ---------------------- #
+# ---------------------- AUTH ROUTES ---------------------- #
 @app.route("/")
 def index():
     """Home – redirect based on login status."""
@@ -155,55 +158,132 @@ def logout():
     return redirect(url_for("login"))
 
 
+# ---------------------- CHAT PAGES ---------------------- #
 @app.route("/chat")
+@app.route("/chat/<username>")
 @login_required
-def chat():
-    return render_template("chat.html", username=session.get("username"))
+def chat(username=None):
+    """Main chat UI. Optional 'username' is the person you’re chatting with."""
+    current_user_id = session["user_id"]
+
+    conn = get_db()
+    cur = conn.cursor()
+    # list of all other users
+    cur.execute(
+        "SELECT id, username FROM users WHERE id != ? ORDER BY username ASC",
+        (current_user_id,),
+    )
+    users = cur.fetchall()
+    conn.close()
+
+    # active chat partner
+    active_username = username
+
+    return render_template(
+        "chat.html",
+        current_username=session["username"],
+        users=users,
+        active_username=active_username,
+    )
 
 
-@app.route("/messages", methods=["GET", "POST"])
+# ---------------------- CHAT APIs ---------------------- #
+@app.route("/api/messages/<username>", methods=["GET", "POST"])
 @login_required
-def messages():
+def api_messages(username):
+    """Get or send messages in a personal chat with 'username'."""
+    current_user_id = session["user_id"]
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    # find the other user
+    cur.execute("SELECT id, username FROM users WHERE username = ?", (username,))
+    other = cur.fetchone()
+
+    if other is None:
+        conn.close()
+        return jsonify({"error": "User not found"}), 404
+
+    other_id = other["id"]
+
+    if other_id == current_user_id:
+        conn.close()
+        return jsonify({"error": "Cannot chat with yourself"}), 400
+
     if request.method == "POST":
         data = request.get_json() or {}
         text = (data.get("text") or "").strip()
 
         if not text:
+            conn.close()
             return jsonify({"error": "Empty message"}), 400
 
         created_at = datetime.now().strftime("%I:%M %p")  # like 12:44 AM
 
-        conn = get_db()
-        cur = conn.cursor()
         cur.execute(
-            "INSERT INTO messages (user_id, username, text, created_at) "
-            "VALUES (?, ?, ?, ?)",
-            (session["user_id"], session["username"], text, created_at),
+            """
+            INSERT INTO messages (sender_id, receiver_id, text, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (current_user_id, other_id, text, created_at),
         )
         conn.commit()
         conn.close()
 
         return jsonify({"status": "ok"})
 
-    # GET: return all messages
-    conn = get_db()
-    cur = conn.cursor()
+    # GET: all messages between the two users
     cur.execute(
-        "SELECT id, username, text, created_at FROM messages ORDER BY id ASC"
+        """
+        SELECT m.id,
+               su.username AS sender,
+               ru.username AS receiver,
+               m.text,
+               m.created_at
+        FROM messages m
+        JOIN users su ON m.sender_id = su.id
+        JOIN users ru ON m.receiver_id = ru.id
+        WHERE (m.sender_id = ? AND m.receiver_id = ?)
+           OR (m.sender_id = ? AND m.receiver_id = ?)
+        ORDER BY m.id ASC
+        """,
+        (current_user_id, other_id, other_id, current_user_id),
     )
+
     rows = cur.fetchall()
     conn.close()
 
     messages_list = [
         {
             "id": row["id"],
-            "username": row["username"],
+            "sender": row["sender"],
+            "receiver": row["receiver"],
             "text": row["text"],
             "created_at": row["created_at"],
         }
         for row in rows
     ]
+
     return jsonify(messages_list)
+
+
+# Simple API to list users (not strictly required, but handy if needed later)
+@app.route("/api/users")
+@login_required
+def api_users():
+    current_user_id = session["user_id"]
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id, username FROM users WHERE id != ? ORDER BY username ASC",
+        (current_user_id,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return jsonify(
+        [{"id": r["id"], "username": r["username"]} for r in rows]
+    )
 
 
 # ---------------------- MAIN ---------------------- #
